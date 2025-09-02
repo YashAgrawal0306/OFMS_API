@@ -1,0 +1,23 @@
+﻿using OFMS_API.BL.Imple;
+using OFMS_API.BL.Interface;
+using OFMS_API.DAL.Imple;
+using OFMS_API.DAL.Interface;
+
+namespace OFMS_API.Helper
+{
+    public static class Register
+    {
+       public static IServiceCollection CommonRegister(this IServiceCollection services)
+        {
+            services.AddScoped<IuserDAL, userDAL>();
+            services.AddScoped<IMenuCategoryDAL,menuCategoryDAL>();
+
+
+            services.AddScoped<IuserBL, userBL>();
+            services.AddScoped<IMenuCategoryBL, MenuCategoryBL>();
+
+
+            return services;
+        }
+    }
+}
