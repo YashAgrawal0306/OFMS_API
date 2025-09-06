@@ -21,7 +21,7 @@ namespace OFMS_API.Controllers
         #region Get
         #region Get All Category
         [HttpGet("GetAllCategory")]
-        public IActionResult GetAllCategory()
+        public async Task<IActionResult> GetAllCategory()
         {
             var response = new GlobalResponseModel<List<menu_categories>>
             {
@@ -32,7 +32,7 @@ namespace OFMS_API.Controllers
 
             try
             {
-                var categories = _bl.GetCategoriesBL();
+                var categories = await _bl.GetCategoriesBL();
 
                 if (categories == null || categories.Count == 0)
                 {
@@ -155,7 +155,7 @@ namespace OFMS_API.Controllers
         #region AddNewCategory
 
         [HttpPost("AddNewCategory")]
-        public IActionResult AddNewCategory([FromBody] menu_categories menu)
+        public async Task<IActionResult> AddNewCategory([FromBody] menu_categories menu)
         {
             var response = new GlobalResponseModel<int>
             {
@@ -174,7 +174,7 @@ namespace OFMS_API.Controllers
             }
             try
             {
-                int result = _bl.AddNewCategoryBL(menu);
+                int result =await _bl.AddNewCategoryBL(menu);
                 if (result <= 0)
                 {
                     response.message = "Failed to add category";
@@ -201,9 +201,9 @@ namespace OFMS_API.Controllers
         #endregion
 
         #region
+        [HttpPost("AddDublicateMenuItem")]
         public async Task<IActionResult> AddDublicateMenuItem(CopyDublicateItemTO itemTO)
         {
-
             return Ok();
         }
         #endregion
@@ -286,7 +286,7 @@ namespace OFMS_API.Controllers
 
             try
             {
-                int result =  _bl.DeleteMenuItemBL(menuid);
+                int result = await _bl.DeleteMenuItemBL(menuid);
 
                 if (result <= 0)
                 {

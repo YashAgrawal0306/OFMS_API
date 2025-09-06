@@ -23,7 +23,7 @@ namespace OFMS_API.DAL.Imple
         #region Get
 
         #region GetAllCategoriesDAL
-        public List<menu_categories> GetAllCategoriesDAL()
+        public async Task<List<menu_categories>> GetAllCategoriesDAL()
         {
             using var conn = new SqlConnection(connq);
             string sql = @"
@@ -95,7 +95,7 @@ namespace OFMS_API.DAL.Imple
         #region Post
 
         #region AddNewCategory
-        public int AddNewCategory(menu_categories categories)
+        public async Task<int> AddNewCategory(menu_categories categories)
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
@@ -103,13 +103,13 @@ namespace OFMS_API.DAL.Imple
             parameter.Add("@catImage", categories.catImage, DbType.String);
             parameter.Add("@cat_description", categories.cat_description, DbType.String);
             string sql = @" INSERT INTO menu_categories (name,catImage,cat_description) VALUES (@Name,@catImage,@cat_description)";
-            return conn.Execute(sql, parameter);
+            return await conn.ExecuteAsync(sql, parameter);
         }
 
         #endregion
 
         #region AddNewMenuItem
-        public int AddNewMenuItem(menu_item menu_Item)
+        public async Task<int> AddNewMenuItem(menu_item menu_Item)
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
@@ -135,15 +135,15 @@ namespace OFMS_API.DAL.Imple
                            @Ingredients, @Description, @CookingTimeMinutes, @ImageUrl, @ThumbnailUrl, @CreatedAt, @UpdatedAt);
                            SELECT CAST(SCOPE_IDENTITY() as int);";
 
-            int newId = conn.ExecuteScalar<int>(query, parameter);
+            int newId = await conn.ExecuteScalarAsync<int>(query, parameter);
             return newId;
         }
         #endregion
 
         #region
-        public int AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
+        public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
         {
-            using var conn = new SqlConnection(connq);
+            //using var conn = new SqlConnection(connq);
             //try
             //{
             //    if (itemTO != null)
@@ -199,12 +199,12 @@ namespace OFMS_API.DAL.Imple
         #region Delete
 
         #region DeleteMenuItem
-        public int DeleteMenuItemDAL(int menuid)
+        public async Task<int> DeleteMenuItemDAL(int menuid)
         {
             using var conn = new SqlConnection(connq);
             
             var sqlquery = "DELETE FROM menu_items WHERE MenuItemId = @MenuItemId";
-            int result =  conn.Execute(sqlquery, new { MenuItemId = menuid });
+            int result = await conn.ExecuteAsync(sqlquery, new { MenuItemId = menuid });
             return result;
         }
 

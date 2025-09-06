@@ -17,35 +17,35 @@ namespace OFMS_API.BL.Imple
             return result;
         }
 
-        public List<menu_categories> GetCategoriesBL()
+        public async Task<List<menu_categories>> GetCategoriesBL()
         {
-            return _menuCategoryDAL.GetAllCategoriesDAL();
+            return await _menuCategoryDAL.GetAllCategoriesDAL();
         }
 
 
-        public int AddNewCategoryBL(menu_categories categories)
+        public async Task<int> AddNewCategoryBL(menu_categories categories)
         {
-           return _menuCategoryDAL.AddNewCategory(categories);
+           return await _menuCategoryDAL.AddNewCategory(categories);
         }
 
-        public int AddNewMenuItem(menu_item menuItem)
+        public async Task<int> AddNewMenuItem(menu_item menuItem)
         {
-            return _menuCategoryDAL.AddNewMenuItem(menuItem);
+            return await _menuCategoryDAL.AddNewMenuItem(menuItem);
         }
 
-        public Task<int> EditMenuItemBL(menu_item menu_Item)
+        public async Task<int> EditMenuItemBL(menu_item menu_Item)
         {
-            return _menuCategoryDAL.EditMenuItemDAL(menu_Item);
+            return await _menuCategoryDAL.EditMenuItemDAL(menu_Item);
         }
 
-        public int DeleteMenuItemBL(int menuid)
+        public async Task<int> DeleteMenuItemBL(int menuid)
         {
-            return _menuCategoryDAL.DeleteMenuItemDAL(menuid);
+            return await _menuCategoryDAL.DeleteMenuItemDAL(menuid);
         }
 
-        public int AddDublicateMenuItemBL(CopyDublicateItemTO itemTO)
+        public async Task<int> AddDublicateMenuItemBL(CopyDublicateItemTO itemTO)
         {
-            return _menuCategoryDAL.AddDublicateMenuItemBL(itemTO);
+            return await _menuCategoryDAL.AddDublicateMenuItemDAL(itemTO);
         }
     }
 }
