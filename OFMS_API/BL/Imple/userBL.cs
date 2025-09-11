@@ -11,19 +11,19 @@ namespace OFMS_API.BL.Imple
         {
             dal = dAL;
         }
-        public List<tbluser> GetAllCust()
+        public async Task<(List<TblUser>, int count)> GetAllCust(int PageNo,int totalItem)
         {
-            return dal.GetAllCustomer();
+            return await dal.GetAllCustomer(PageNo,totalItem);
         }
 
-        public Task<int> AddNewCustomerBL(tbluser customerDTO)
+        public async Task<int> AddNewCustomerBL(TblUser customerDTO)
         {
-            return dal.AddNewCustomerDAL(customerDTO);
+            return await dal.AddNewCustomerDAL(customerDTO);
         }
 
-        public Task<string> LoginBL(tbluserlogin loginCustomer)
+        public async Task<string> LoginBL(TblUserLogin loginCustomer)
         {
-           return dal.LoginDAL(loginCustomer);
+           return await dal.LoginDAL(loginCustomer);
         }
     }
 }

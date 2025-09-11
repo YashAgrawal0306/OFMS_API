@@ -23,27 +23,30 @@ namespace OFMS_API.DAL.Imple
             _config = configuration;
         }
 
-        public List<tbluser> GetAllCustomer()
+        public async Task<(List<TblUser>, int count)> GetAllCustomer(int PageNo, int totalItem)
         {
             using var conn = new SqlConnection(connq);
-            string sql = "SELECT * FROM Customer";
-            var list = conn.Query<tbluser>(sql).ToList();
-            return list;
+            string sql = "SELECT * FROM tbluser";
+            var list = await conn.QueryAsync<TblUser>(sql);
+            var PageItem = list.Skip(totalItem * (PageNo - 1)).Take(totalItem).ToList();
+            int count = list.Count();
+            return (PageItem, count);
         }
-        public async Task<int> AddNewCustomerDAL(tbluser customer)
+        public async Task<int> AddNewCustomerDAL(TblUser customer)
         {
+            var pass = customer.Password ?? "";
             SHA256 sHA256 = SHA256.Create();
-                byte[] bytes = Encoding.UTF8.GetBytes(customer.Password);
-                byte[] hasbyte = sHA256.ComputeHash(bytes);
+            byte[] bytes = Encoding.UTF8.GetBytes(pass);
+            byte[] hasbyte = sHA256.ComputeHash(bytes);
 
-                StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
 
-                foreach (var b in hasbyte)
-                {
-                    builder.Append(b.ToString("x2"));
-                }
-               string hasPass =  builder.ToString();
-            
+            foreach (var b in hasbyte)
+            {
+                builder.Append(b.ToString("x2"));
+            }
+            string hasPass = builder.ToString();
+
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
             parameter.Add("@UserName", customer.UserName, DbType.String);
@@ -55,7 +58,7 @@ namespace OFMS_API.DAL.Imple
             parameter.Add("@IsActive", customer.IsActive, DbType.String);
             parameter.Add("@created_at", DateTime.Now, DbType.DateTime);
             parameter.Add("@updated_at", DateTime.Now, DbType.DateTime);
-            parameter.Add("@roleId",customer.RoleId, DbType.Int32);
+            parameter.Add("@roleId", customer.RoleId, DbType.Int32);
 
             string sql = @" INSERT INTO tbluser (UserName,UserEmail, Password, Phone_number, Date_of_birth, Profile_image, IsActive, created_at, updated_at,roleId) 
             VALUES (@UserName,@UserEmail, @Password, @Phone_number, @Date_of_birth, @Profile_image, @IsActive, @created_at, @updated_at,@roleId)";
@@ -64,35 +67,37 @@ namespace OFMS_API.DAL.Imple
         }
 
 
-        public async Task<string> LoginDAL(tbluserlogin tbluserlogin)
+        public async Task<string> LoginDAL(TblUserLogin tbluserlogin)
         {
+            var pass = tbluserlogin.Password ?? "";
             using var conn = new SqlConnection(connq);
             using SHA256 sha256 = SHA256.Create();
-            byte[] bytes = Encoding.UTF8.GetBytes(tbluserlogin.Password);
+            byte[] bytes = Encoding.UTF8.GetBytes(pass);
             byte[] hashBytes = sha256.ComputeHash(bytes);
             string hashedPassword = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
             string sql = "SELECT * FROM tbluser WHERE useremail = @Email AND Password = @Password AND roleId =@RoleId ";
-            var user = await conn.QueryFirstOrDefaultAsync<tbluser>(
+            var user = await conn.QueryFirstOrDefaultAsync<TblUser>(
                 sql,
-                new { Email = tbluserlogin.Email, Password = hashedPassword , roleId = tbluserlogin.RoleId }
+                new { Email = tbluserlogin.Email, Password = hashedPassword, roleId = tbluserlogin.RoleId }
             );
 
             if (user != null)
             {
-                string token = GenerateToken(user); 
+                string token = await GenerateToken(user);
                 return token;
             }
             else
             {
-                return null;
+                return "";
             }
         }
 
-        private string GenerateToken(tbluser tbluserlogin)
+        private async Task<string> GenerateToken(TblUser tbluserlogin)
         {
-            var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-            var credential = new SigningCredentials(securitykey,SecurityAlgorithms.HmacSha256);
+            var jwtkey = _config["Jwt:Key"] ?? "";
+            var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtkey));
+            var credential = new SigningCredentials(securitykey, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
                 new Claim("userId",tbluserlogin.UserId.ToString()),
@@ -104,7 +109,7 @@ namespace OFMS_API.DAL.Imple
                 expires: DateTime.Now.AddMinutes(100),
                 signingCredentials: credential
                 );
-            string token = new JwtSecurityTokenHandler().WriteToken(gettoken);
+            string token =await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(gettoken));
             return token;
         }
     }

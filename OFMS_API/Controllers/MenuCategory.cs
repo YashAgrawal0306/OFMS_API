@@ -75,7 +75,7 @@ namespace OFMS_API.Controllers
             {
                 var menuList = await _bl.GatAllMenuItemListBL().ConfigureAwait(false);
 
-                if (menuList == null || !menuList.Any())
+                if (menuList == null)
                 {
                     response.message = "No menu items found";
                     response.statusCode = StatusCodes.Status204NoContent;
@@ -201,11 +201,11 @@ namespace OFMS_API.Controllers
         #endregion
 
         #region
-        [HttpPost("AddDublicateMenuItem")]
-        public async Task<IActionResult> AddDublicateMenuItem(CopyDublicateItemTO itemTO)
-        {
-            return Ok();
-        }
+        //[HttpPost("AddDublicateMenuItem")]
+        //public async Task<IActionResult> AddDublicateMenuItem(CopyDublicateItemTO itemTO)
+        //{
+        //    return Ok();
+        //}
         #endregion
 
         #endregion

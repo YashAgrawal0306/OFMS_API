@@ -9,7 +9,5 @@
         public string Status { get; set; } = "pending";  
         public string PaymentStatus { get; set; } = "unpaid"; 
         public DateTime OrderTime { get; set; } = DateTime.Now;
-        public tbluser? Customer { get; set; }
-        public Admin? DeliveryStaff { get; set; }
     }
 }

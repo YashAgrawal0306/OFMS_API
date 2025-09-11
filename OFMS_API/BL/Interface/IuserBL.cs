@@ -4,8 +4,8 @@ namespace OFMS_API.BL.Interface
 {
     public interface IuserBL
     {
-        List<tbluser> GetAllCust();
-        Task<int> AddNewCustomerBL(tbluser customerDTO);
-        Task<string> LoginBL(tbluserlogin tbluserlogin);
+        Task<(List<TblUser>, int count)> GetAllCust(int PageNo,int totalItem);
+        Task<int> AddNewCustomerBL(TblUser customerDTO);
+        Task<string> LoginBL(TblUserLogin tbluserlogin);
     }
 }

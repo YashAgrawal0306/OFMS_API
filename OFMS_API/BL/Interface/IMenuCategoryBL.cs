@@ -9,7 +9,7 @@ namespace OFMS_API.BL.Interface
 
         Task<int> AddNewCategoryBL(menu_categories categories);
         Task<int> AddNewMenuItem(menu_item menu_Item);
-        Task<int> AddDublicateMenuItemBL(CopyDublicateItemTO itemTO);
+        //Task<int> AddDublicateMenuItemBL(CopyDublicateItemTO itemTO);
 
         Task<int> EditMenuItemBL(menu_item menu_Item);
 

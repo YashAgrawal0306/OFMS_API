@@ -32,7 +32,8 @@ namespace OFMS_API.DAL.Imple
                           CAST(MAX(m.Price)AS FLOAT) AS maxprice FROM menu_categories c LEFT JOIN menu_items m
                           ON c.id = m.CategoryId GROUP BY c.id, c.name, c.cat_description ,c.catImage";
 
-            var result = conn.Query(sql).Select(x => new menu_categories
+            var result = await conn.QueryAsync(sql);
+            var ResultList = result.Select(x => new menu_categories
             {
                 Id = x.id,
                 name = x.name ?? "",
@@ -44,11 +45,11 @@ namespace OFMS_API.DAL.Imple
             });
             if (result != null)
             {
-                return result.ToList();
+                return ResultList.ToList();
             }
             else
             {
-                return null;
+                return ResultList?.ToList() ?? new List<menu_categories>();
             }
         }
         #endregion
@@ -141,8 +142,8 @@ namespace OFMS_API.DAL.Imple
         #endregion
 
         #region
-        public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
-        {
+        //public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
+        //{
             //using var conn = new SqlConnection(connq);
             //try
             //{
@@ -155,8 +156,8 @@ namespace OFMS_API.DAL.Imple
             //catch (Exception) {
             //    throw;
             //}
-            return 1;
-        }
+        //    return 1;
+        //}
         #endregion
 
         #endregion

@@ -17,10 +17,15 @@ namespace OFMS_API.Controllers
         {
             db = add;
         }
-        [HttpGet]
-        public IActionResult GetAll()
+        [HttpGet("GetAllUserInfo")]
+        public async Task<IActionResult> GetAllUserList(int PageNo,int totalItem)
         {
-            return Ok(db.GetAllCust());
+            var result =await db.GetAllCust(PageNo, totalItem);
+            return Ok(new
+            {
+                List=result.Item1,
+                TotalUser= result.count
+            });
         }
 
         #region User Management
@@ -47,8 +52,9 @@ namespace OFMS_API.Controllers
 
             try
             {
-                string json = data.ToString();
-                tbluser user = JsonConvert.DeserializeObject<tbluser>(json);
+                string json = data.ToString() ?? "";
+
+                TblUser? user = JsonConvert.DeserializeObject<TblUser>(json);
 
                 if (user == null || string.IsNullOrWhiteSpace(user.UserName))
                 {
@@ -90,7 +96,7 @@ namespace OFMS_API.Controllers
 
         [HttpPost("Login")]
         [AllowAnonymous]
-        public async Task<IActionResult> LoginUser([FromBody] tbluserlogin login)
+        public async Task<IActionResult> LoginUser([FromBody] TblUserLogin login)
         {
             var response = new GlobalResponseModel<string>
             {

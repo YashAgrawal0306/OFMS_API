@@ -5,8 +5,8 @@ namespace OFMS_API.DAL.Interface
 {
     public interface IuserDAL
     {
-        List<tbluser> GetAllCustomer();
-        Task<int> AddNewCustomerDAL(tbluser customerDTO);
-        Task<string> LoginDAL(tbluserlogin loginCustomer);
+        Task<(List<TblUser>, int count)> GetAllCustomer(int PageNo,int totalItem);
+        Task<int> AddNewCustomerDAL(TblUser customerDTO);
+        Task<string> LoginDAL(TblUserLogin loginCustomer);
     }
 }

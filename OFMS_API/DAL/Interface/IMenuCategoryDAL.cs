@@ -9,7 +9,7 @@ namespace OFMS_API.DAL.Interface
 
         Task<int> AddNewCategory(menu_categories categories);
         Task<int> AddNewMenuItem(menu_item menu_Item);
-        Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO);
+        //Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO);
 
         Task<int> EditMenuItemDAL(menu_item item);
 

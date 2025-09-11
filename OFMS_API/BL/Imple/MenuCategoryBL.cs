@@ -1,16 +1,14 @@
 ﻿using OFMS_API.BL.Interface;
+using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Models;
 
 namespace OFMS_API.BL.Imple
 {
-    public class MenuCategoryBL : IMenuCategoryBL
+    public class MenuCategoryBL(IMenuCategoryDAL menuCategoryDAL) : IMenuCategoryBL
     {
-        private readonly IMenuCategoryDAL _menuCategoryDAL;
-        public MenuCategoryBL(IMenuCategoryDAL menuCategoryDAL)
-        {
-            _menuCategoryDAL = menuCategoryDAL;
-        }
+        private readonly IMenuCategoryDAL _menuCategoryDAL = menuCategoryDAL;
+
         public Task<List<menu_item>> GatAllMenuItemListBL()
         {
             var result = _menuCategoryDAL.GetAllMenuItemsListDAL();
@@ -25,7 +23,7 @@ namespace OFMS_API.BL.Imple
 
         public async Task<int> AddNewCategoryBL(menu_categories categories)
         {
-           return await _menuCategoryDAL.AddNewCategory(categories);
+            return await _menuCategoryDAL.AddNewCategory(categories);
         }
 
         public async Task<int> AddNewMenuItem(menu_item menuItem)
@@ -43,9 +41,9 @@ namespace OFMS_API.BL.Imple
             return await _menuCategoryDAL.DeleteMenuItemDAL(menuid);
         }
 
-        public async Task<int> AddDublicateMenuItemBL(CopyDublicateItemTO itemTO)
-        {
-            return await _menuCategoryDAL.AddDublicateMenuItemDAL(itemTO);
-        }
+        //public async Task<int> AddDublicateMenuItemBL(CopyDublicateItemTO itemTO)
+        //{
+        //    return await _menuCategoryDAL.AddDublicateMenuItemDAL(itemTO);
+        //}
     }
 }
