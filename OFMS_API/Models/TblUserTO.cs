@@ -1,6 +1,6 @@
 ﻿namespace OFMS_API.Models
 {
-    public class TblUser
+    public class TblUserTO
     {
         public int UserId { get; set; }             
         public string? UserName { get; set; }       

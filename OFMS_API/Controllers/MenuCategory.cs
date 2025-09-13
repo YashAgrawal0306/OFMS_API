@@ -23,7 +23,7 @@ namespace OFMS_API.Controllers
         [HttpGet("GetAllCategory")]
         public async Task<IActionResult> GetAllCategory()
         {
-            var response = new GlobalResponseModel<List<menu_categories>>
+            var response = new GlobalResponseModel<List<MenuCategoriesTO>>
             {
                 message = "Categories retrieved successfully",
                 statusCode = StatusCodes.Status200OK,
@@ -64,7 +64,7 @@ namespace OFMS_API.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetAllMenuItemList()
         {
-            var response = new GlobalResponseModel<List<menu_item>>
+            var response = new GlobalResponseModel<List<MenuItemsTO>>
             {
                 message = "Menu items retrieved successfully",
                 statusCode = StatusCodes.Status200OK,
@@ -105,7 +105,7 @@ namespace OFMS_API.Controllers
 
         #region AddNewMenuItem 
         [HttpPost("AddNewMenuItem")]
-        public async Task<IActionResult> AddNewMenuItem([FromBody] menu_item menu_Item)
+        public async Task<IActionResult> AddNewMenuItem([FromBody] MenuItemsTO menu_Item)
         {
             var response = new GlobalResponseModel<int>
             {
@@ -155,7 +155,7 @@ namespace OFMS_API.Controllers
         #region AddNewCategory
 
         [HttpPost("AddNewCategory")]
-        public async Task<IActionResult> AddNewCategory([FromBody] menu_categories menu)
+        public async Task<IActionResult> AddNewCategory([FromBody] MenuCategoriesTO menu)
         {
             var response = new GlobalResponseModel<int>
             {
@@ -201,11 +201,67 @@ namespace OFMS_API.Controllers
         #endregion
 
         #region
-        //[HttpPost("AddDublicateMenuItem")]
-        //public async Task<IActionResult> AddDublicateMenuItem(CopyDublicateItemTO itemTO)
-        //{
-        //    return Ok();
-        //}
+        #region Menu Management
+
+        /// <summary>
+        /// Adds a duplicate menu item based on the provided source
+        /// </summary>
+        /// <param name="itemTO">CopyDublicateItemTO object containing duplication details</param>
+        /// <returns>GlobalResponseModel with duplication result</returns>
+        /// <response code="200">Duplicate menu item added successfully</response>
+        /// <response code="400">Validation error</response>
+        /// <response code="500">Server error</response>
+        [HttpPost("AddDublicateMenuItem")]
+        [ProducesResponseType(typeof(GlobalResponseModel<int>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddDublicateMenuItem([FromBody] CopyDublicateItemTO itemTO)
+        {
+            var response = new GlobalResponseModel<int>
+            {
+                message = "Duplicate menu item added successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (itemTO == null)
+            {
+                response.message = "Invalid duplication request";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                response.status = "Fail";
+                response.data = 0;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                int result = await Task.Run(() => _bl.AddDublicateMenuItemBL(itemTO)).ConfigureAwait(false);
+
+                if (result <= 0)
+                {
+                    response.message = "Failed to duplicate menu item";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.status = "Error";
+                    response.data = result;
+                    return Ok(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = 0;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #endregion
@@ -214,7 +270,7 @@ namespace OFMS_API.Controllers
 
         #region EditMenuItems
         [HttpPost("EditMenuItems")]
-        public async Task<IActionResult> EditMenuItems([FromBody] menu_item item)
+        public async Task<IActionResult> EditMenuItems([FromBody] MenuItemsTO item)
         {
             var response = new GlobalResponseModel<int>
             {

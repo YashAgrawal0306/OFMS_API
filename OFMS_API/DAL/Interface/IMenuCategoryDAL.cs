@@ -4,14 +4,14 @@ namespace OFMS_API.DAL.Interface
 {
     public interface IMenuCategoryDAL
     {
-        Task<List<menu_categories>> GetAllCategoriesDAL();
-        Task<List<menu_item>> GetAllMenuItemsListDAL();
+        Task<List<MenuCategoriesTO>> GetAllCategoriesDAL();
+        Task<List<MenuItemsTO>> GetAllMenuItemsListDAL();
 
-        Task<int> AddNewCategory(menu_categories categories);
-        Task<int> AddNewMenuItem(menu_item menu_Item);
-        //Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO);
+        Task<int> AddNewCategory(MenuCategoriesTO categories);
+        Task<int> AddNewMenuItem(MenuItemsTO menu_Item);
+        Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO);
 
-        Task<int> EditMenuItemDAL(menu_item item);
+        Task<int> EditMenuItemDAL(MenuItemsTO item);
 
         Task<int> DeleteMenuItemDAL(int menuid);
     }

@@ -17,16 +17,55 @@ namespace OFMS_API.Controllers
         {
             db = add;
         }
+        #region User Management
+
+        /// <summary>
+        /// Retrieves a filtered list of users
+        /// </summary>
+        /// <param name="filter">FilterModelTO object containing filter criteria</param>
+        /// <returns>GlobalResponseModel with list of users</returns>
+        /// <response code="200">Users retrieved successfully</response>
+        /// <response code="204">No users found</response>
+        /// <response code="500">Server error</response>
         [HttpGet("GetAllUserInfo")]
-        public async Task<IActionResult> GetAllUserList(int PageNo,int totalItem)
+        public async Task<IActionResult> GetAllUserList([FromQuery] FilterModelTO filter)
         {
-            var result =await db.GetAllCust(PageNo, totalItem);
-            return Ok(new
+            var response = new GlobalResponseModel<OutPutClass<TblUserTO>>
             {
-                List=result.Item1,
-                TotalUser= result.count
-            });
+                message = "Users retrieved successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var result = await db.GetAllCust(filter).ConfigureAwait(false);
+
+                if (result == null)
+                {
+                    response.message = "No users found";
+                    response.statusCode = StatusCodes.Status204NoContent;
+                    response.status = "Success";
+                    response.data = new OutPutClass<TblUserTO>();
+                    return StatusCode(StatusCodes.Status204NoContent, response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = new OutPutClass<TblUserTO>();
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
         }
+
+        #endregion
+
 
         #region User Management
         [HttpPost("AddNewUser")]
@@ -54,7 +93,7 @@ namespace OFMS_API.Controllers
             {
                 string json = data.ToString() ?? "";
 
-                TblUser? user = JsonConvert.DeserializeObject<TblUser>(json);
+                TblUserTO? user = JsonConvert.DeserializeObject<TblUserTO>(json);
 
                 if (user == null || string.IsNullOrWhiteSpace(user.UserName))
                 {

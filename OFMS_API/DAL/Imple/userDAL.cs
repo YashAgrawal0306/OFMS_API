@@ -23,16 +23,56 @@ namespace OFMS_API.DAL.Imple
             _config = configuration;
         }
 
-        public async Task<(List<TblUser>, int count)> GetAllCustomer(int PageNo, int totalItem)
+        public async Task<OutPutClass<TblUserTO>> GetAllCustomer(FilterModelTO filter)
         {
             using var conn = new SqlConnection(connq);
-            string sql = "SELECT * FROM tbluser";
-            var list = await conn.QueryAsync<TblUser>(sql);
-            var PageItem = list.Skip(totalItem * (PageNo - 1)).Take(totalItem).ToList();
-            int count = list.Count();
-            return (PageItem, count);
+
+            // Default values for pagination
+            int pageNo = filter.PageNo <= 0 ? 1 : filter.PageNo;
+            int pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+            int offset = (pageNo - 1) * pageSize;
+
+            // Base query
+            string sql = "SELECT * FROM tbluser WHERE 1=1";
+
+            // Add search filter if provided
+            if (!string.IsNullOrEmpty(filter.SearchText))
+            {
+                sql += " AND (UserName LIKE @Search OR UserEmail LIKE @Search OR PhoneNumber LIKE @Search)";
+            }
+
+            // Add sorting
+            string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "UserId" : filter.SortColumn;
+            string sortOrder = string.IsNullOrEmpty(filter.SortOrder) ? "ASC" : filter.SortOrder.ToUpper();
+            sql += $" ORDER BY {sortColumn} {sortOrder}";
+
+            // Add pagination
+            sql += " OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+            // Query data
+            var list = await conn.QueryAsync<TblUserTO>(sql, new
+            {
+                Search = $"%{filter.SearchText}%",
+                Offset = offset,
+                PageSize = pageSize
+            });
+
+            // Get total count separately
+            string countSql = "SELECT COUNT(*) FROM tbluser WHERE 1=1";
+            if (!string.IsNullOrEmpty(filter.SearchText))
+            {
+                countSql += " AND (UserName LIKE @Search OR UserEmail LIKE @Search OR PhoneNumber LIKE @Search)";
+            }
+            int total = await conn.ExecuteScalarAsync<int>(countSql, new { Search = $"%{filter.SearchText}%" });
+
+            return new OutPutClass<TblUserTO>
+            {
+                List = list.ToList(),
+                TotalUser = total
+            };
         }
-        public async Task<int> AddNewCustomerDAL(TblUser customer)
+
+        public async Task<int> AddNewCustomerDAL(TblUserTO customer)
         {
             var pass = customer.Password ?? "";
             SHA256 sHA256 = SHA256.Create();
@@ -77,7 +117,7 @@ namespace OFMS_API.DAL.Imple
             string hashedPassword = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
             string sql = "SELECT * FROM tbluser WHERE useremail = @Email AND Password = @Password AND roleId =@RoleId ";
-            var user = await conn.QueryFirstOrDefaultAsync<TblUser>(
+            var user = await conn.QueryFirstOrDefaultAsync<TblUserTO>(
                 sql,
                 new { Email = tbluserlogin.Email, Password = hashedPassword, roleId = tbluserlogin.RoleId }
             );
@@ -93,7 +133,7 @@ namespace OFMS_API.DAL.Imple
             }
         }
 
-        private async Task<string> GenerateToken(TblUser tbluserlogin)
+        private async Task<string> GenerateToken(TblUserTO tbluserlogin)
         {
             var jwtkey = _config["Jwt:Key"] ?? "";
             var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtkey));

@@ -13,7 +13,7 @@ namespace OFMS_API.Helper
             services.AddScoped<IMenuCategoryDAL,menuCategoryDAL>();
 
 
-            services.AddScoped<IuserBL, userBL>();
+            services.AddScoped<IuserBL, UserBL>();
             services.AddScoped<IMenuCategoryBL, MenuCategoryBL>();
 
 

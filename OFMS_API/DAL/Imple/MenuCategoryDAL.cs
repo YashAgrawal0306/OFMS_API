@@ -23,7 +23,7 @@ namespace OFMS_API.DAL.Imple
         #region Get
 
         #region GetAllCategoriesDAL
-        public async Task<List<menu_categories>> GetAllCategoriesDAL()
+        public async Task<List<MenuCategoriesTO>> GetAllCategoriesDAL()
         {
             using var conn = new SqlConnection(connq);
             string sql = @"
@@ -33,7 +33,7 @@ namespace OFMS_API.DAL.Imple
                           ON c.id = m.CategoryId GROUP BY c.id, c.name, c.cat_description ,c.catImage";
 
             var result = await conn.QueryAsync(sql);
-            var ResultList = result.Select(x => new menu_categories
+            var ResultList = result.Select(x => new MenuCategoriesTO
             {
                 Id = x.id,
                 name = x.name ?? "",
@@ -49,20 +49,20 @@ namespace OFMS_API.DAL.Imple
             }
             else
             {
-                return ResultList?.ToList() ?? new List<menu_categories>();
+                return ResultList?.ToList() ?? new List<MenuCategoriesTO>();
             }
         }
         #endregion
 
         #region GetAllMenuItemsListDAL
-        public async Task<List<menu_item>> GetAllMenuItemsListDAL()
+        public async Task<List<MenuItemsTO>> GetAllMenuItemsListDAL()
         {
             try
             {
                 using var conn = new SqlConnection(connq);
                 string sql = @"SELECT m.*, c.id AS CategoryId, c.name AS CategoryName FROM menu_items m INNER JOIN menu_categories c ON m.CategoryId = c.id";
                 var result = await conn.QueryAsync(sql);
-                var resultlist = result.Select(x => new menu_item
+                var resultlist = result.Select(x => new MenuItemsTO
                 {
                     MenuItemId = x.MenuItemId ?? 0,
                     MenuName = x.MenuName ?? "",
@@ -96,7 +96,7 @@ namespace OFMS_API.DAL.Imple
         #region Post
 
         #region AddNewCategory
-        public async Task<int> AddNewCategory(menu_categories categories)
+        public async Task<int> AddNewCategory(MenuCategoriesTO categories)
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
@@ -110,7 +110,7 @@ namespace OFMS_API.DAL.Imple
         #endregion
 
         #region AddNewMenuItem
-        public async Task<int> AddNewMenuItem(menu_item menu_Item)
+        public async Task<int> AddNewMenuItem(MenuItemsTO menu_Item)
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
@@ -142,22 +142,50 @@ namespace OFMS_API.DAL.Imple
         #endregion
 
         #region
-        //public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
-        //{
-            //using var conn = new SqlConnection(connq);
-            //try
-            //{
-            //    if (itemTO != null)
-            //    {
-            //        itemTO.
-            //    }
-            //    var parameter = new DynamicParameters();
-            //}
-            //catch (Exception) {
-            //    throw;
-            //}
-        //    return 1;
-        //}
+        public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
+        {
+            using var conn = new SqlConnection(connq);
+            try
+            {
+                int menuId = itemTO.menuItemId;
+                string newName = itemTO.ProductName ?? "";
+                string columns = "MenuName,ProductName,CategoryId,Status";
+                string selectColumns = "MenuName, @ProductName, CategoryId, Status";
+
+                if (itemTO.CopyPricingInfo == true)
+                {
+                    columns += ",Price,DiscountPercent";
+                    selectColumns += ",Price,DiscountPercent";
+                }
+                else
+                {
+                    columns += ",Price,DiscountPercent";
+                    selectColumns += ",0,0"; 
+                }
+                if (itemTO.Copyingredients == true)
+                {
+                    columns += ",Ingredients";
+                    selectColumns += ",Ingredients";
+                }
+
+                columns += ",Description,CookingTimeMinutes,ImageUrl,ThumbnailUrl,CreatedAt,UpdatedAt";
+                selectColumns += ",Description,CookingTimeMinutes,ImageUrl,ThumbnailUrl,CreatedAt,UpdatedAt";
+
+                string insertquery = $@"
+                                    INSERT INTO menu_items ({columns})
+                                    SELECT {selectColumns}
+                                    FROM menu_items
+                                    WHERE MenuItemId = @MenuId";
+
+                var result = await conn.ExecuteAsync(insertquery, new { MenuId = menuId, ProductName = newName });
+                return result;
+
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         #endregion
 
         #endregion
@@ -165,7 +193,7 @@ namespace OFMS_API.DAL.Imple
         #region Edit
 
         #region EditMenuItemDAL
-        public async Task<int> EditMenuItemDAL(menu_item menu_Item)
+        public async Task<int> EditMenuItemDAL(MenuItemsTO menu_Item)
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
@@ -203,13 +231,11 @@ namespace OFMS_API.DAL.Imple
         public async Task<int> DeleteMenuItemDAL(int menuid)
         {
             using var conn = new SqlConnection(connq);
-            
+
             var sqlquery = "DELETE FROM menu_items WHERE MenuItemId = @MenuItemId";
             int result = await conn.ExecuteAsync(sqlquery, new { MenuItemId = menuid });
             return result;
         }
-
-       
 
         #endregion
 

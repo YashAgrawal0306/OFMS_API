@@ -2,10 +2,10 @@
 {
     public class CopyDublicateItemTO
     {
-        public int MenuId { get; set; }
-        public string? MenuNewName { get; set; }
-        public int CopyPricingInfo { get; set; }
-        public int Copyingredients { get; set; }
+        public int menuItemId { get; set; }
+        public string? ProductName { get; set; }
+        public bool CopyPricingInfo { get; set; }
+        public bool Copyingredients { get; set; }
         public bool ActiveStatus {  get; set; }
     }
 }

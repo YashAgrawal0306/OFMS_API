@@ -3,15 +3,15 @@ using System;
 
 namespace OFMS_API.Models
 {
-    public class menu_item
+    public class MenuItemsTO
     {
         public int MenuItemId { get; set; }
         public string? MenuName { get; set; }
         public string? ProductName { get; set; }
         public int CategoryId { get; set; }
         public bool Status { get; set; } = true;
-        public decimal Price { get; set; }
-        public decimal? DiscountPercent { get; set; }
+        public decimal Price { get; set; } = 0;
+        public decimal? DiscountPercent { get; set; } = 0;
         public decimal FinalPrice { get;  set; }
         public string? Ingredients { get; set; }
         public string? Description { get; set; }

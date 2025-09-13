@@ -4,19 +4,19 @@ using OFMS_API.Models;
 
 namespace OFMS_API.BL.Imple
 {
-    public class userBL : IuserBL
+    public class UserBL : IuserBL
     {
         private readonly IuserDAL dal;
-        public userBL(IuserDAL dAL)
+        public UserBL(IuserDAL dAL)
         {
             dal = dAL;
         }
-        public async Task<(List<TblUser>, int count)> GetAllCust(int PageNo,int totalItem)
+        public async Task<OutPutClass<TblUserTO>> GetAllCust(FilterModelTO filter)
         {
-            return await dal.GetAllCustomer(PageNo,totalItem);
+            return await dal.GetAllCustomer(filter);
         }
 
-        public async Task<int> AddNewCustomerBL(TblUser customerDTO)
+        public async Task<int> AddNewCustomerBL(TblUserTO customerDTO)
         {
             return await dal.AddNewCustomerDAL(customerDTO);
         }

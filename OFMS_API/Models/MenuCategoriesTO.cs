@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OFMS_API.Models
 {
-    public class menu_categories
+    public class MenuCategoriesTO
 
     {
         [Key]
