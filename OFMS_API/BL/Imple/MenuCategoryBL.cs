@@ -9,9 +9,9 @@ namespace OFMS_API.BL.Imple
     {
         private readonly IMenuCategoryDAL _menuCategoryDAL = menuCategoryDAL;
 
-        public Task<List<MenuItemsTO>> GatAllMenuItemListBL()
+        public async Task<List<MenuItemsTO>> GatAllMenuItemListBL(FilterModelTO filterModelTO)
         {
-            var result = _menuCategoryDAL.GetAllMenuItemsListDAL();
+            var result =await _menuCategoryDAL.GetAllMenuItemsListDAL(filterModelTO);
             return result;
         }
 
@@ -20,6 +20,10 @@ namespace OFMS_API.BL.Imple
             return await _menuCategoryDAL.GetAllCategoriesDAL();
         }
 
+        public async Task<List<DropDownList>> GetCategoryDropDownListBL()
+        {
+            return await _menuCategoryDAL.GetCategoryDropDownListDAL();
+        }
 
         public async Task<int> AddNewCategoryBL(MenuCategoriesTO categories)
         {

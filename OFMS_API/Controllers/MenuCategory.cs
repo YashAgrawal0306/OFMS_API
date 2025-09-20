@@ -60,9 +60,9 @@ namespace OFMS_API.Controllers
         #endregion
 
         #region Get All MenuItem
-        [HttpGet("GetAllMenuItemList")]
+        [HttpPost("GetAllMenuItemList")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllMenuItemList()
+        public async Task<IActionResult> GetAllMenuItemList([FromForm]FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<List<MenuItemsTO>>
             {
@@ -73,7 +73,7 @@ namespace OFMS_API.Controllers
 
             try
             {
-                var menuList = await _bl.GatAllMenuItemListBL().ConfigureAwait(false);
+                var menuList = await _bl.GatAllMenuItemListBL(filterModelTO).ConfigureAwait(false);
 
                 if (menuList == null)
                 {
@@ -99,13 +99,50 @@ namespace OFMS_API.Controllers
         }
         #endregion
 
+        #region GetDropDownList
+        [HttpGet("GetCategoryDropDownList")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCategoryDropDownList()
+        {
+            var response = new GlobalResponseModel<List<DropDownList>>
+            {
+                message = "Cagtegory List retrieved successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+            try
+            {
+                var result = await _bl.GetCategoryDropDownListBL().ConfigureAwait(false);
+                if (result == null)
+                {
+                    response.data = [];
+                    response.statusCode =StatusCodes.Status404NotFound;
+                    response.status = "Success";
+                    response.message = "No menu items found";
+                    return Ok(response);
+                }
+                response.data= result.ToList();
+                return Ok(response) ;
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = [];
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+        #endregion
+
         #endregion
 
         #region Post
 
         #region AddNewMenuItem 
         [HttpPost("AddNewMenuItem")]
-        public async Task<IActionResult> AddNewMenuItem([FromBody] MenuItemsTO menu_Item)
+        public async Task<IActionResult> AddNewMenuItem([FromForm] MenuItemsTO menu_Item)
         {
             var response = new GlobalResponseModel<int>
             {
@@ -174,7 +211,7 @@ namespace OFMS_API.Controllers
             }
             try
             {
-                int result =await _bl.AddNewCategoryBL(menu);
+                int result = await _bl.AddNewCategoryBL(menu);
                 if (result <= 0)
                 {
                     response.message = "Failed to add category";

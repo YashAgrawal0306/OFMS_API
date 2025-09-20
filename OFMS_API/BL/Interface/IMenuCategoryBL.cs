@@ -4,8 +4,9 @@ namespace OFMS_API.BL.Interface
 {
     public interface IMenuCategoryBL
     {
-        Task<List<MenuItemsTO>> GatAllMenuItemListBL();
+        Task<List<MenuItemsTO>> GatAllMenuItemListBL(FilterModelTO filterModelTO);
         Task<List<MenuCategoriesTO>> GetCategoriesBL();
+        Task<List<DropDownList>> GetCategoryDropDownListBL();
 
         Task<int> AddNewCategoryBL(MenuCategoriesTO categories);
         Task<int> AddNewMenuItem(MenuItemsTO menu_Item);

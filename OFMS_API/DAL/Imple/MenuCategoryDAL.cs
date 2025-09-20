@@ -3,9 +3,11 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using OFMS_API.BL.Imple;
 using OFMS_API.DAL.Interface;
+using OFMS_API.MinioS3;
 using OFMS_API.Models;
 using System.Data;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace OFMS_API.DAL.Imple
@@ -55,13 +57,35 @@ namespace OFMS_API.DAL.Imple
         #endregion
 
         #region GetAllMenuItemsListDAL
-        public async Task<List<MenuItemsTO>> GetAllMenuItemsListDAL()
+        public async Task<List<MenuItemsTO>> GetAllMenuItemsListDAL(FilterModelTO filterModelTO)
         {
             try
             {
                 using var conn = new SqlConnection(connq);
-                string sql = @"SELECT m.*, c.id AS CategoryId, c.name AS CategoryName FROM menu_items m INNER JOIN menu_categories c ON m.CategoryId = c.id";
-                var result = await conn.QueryAsync(sql);
+
+                // Apply safe defaults
+                int pageSize = filterModelTO.PageSize ?? 0;
+                int pageNo = filterModelTO.PageNo?? 0;
+
+                DynamicParameters parameters = new DynamicParameters();
+                parameters.Add("@CategoryId", filterModelTO.CategoryId, DbType.Int32);
+                parameters.Add("@SearchText", filterModelTO.SearchText, DbType.String);
+                parameters.Add("@IsActive", filterModelTO.isActive, DbType.Boolean);
+                parameters.Add("@PageSize", pageSize, DbType.Int32);
+                parameters.Add("@PageNo", pageNo, DbType.Int32);
+
+                var sql = @"
+            SELECT m.*, c.id AS CategoryId, c.name AS CategoryName
+            FROM menu_items m
+            INNER JOIN menu_categories c ON m.CategoryId = c.id
+            WHERE (@SearchText IS NULL OR @SearchText = m.ProductName OR @SearchText = m.MenuName)
+              AND (@IsActive IS NULL OR @IsActive = m.Status)
+            ORDER BY " + filterModelTO.SortColumn + " " + filterModelTO.SortOrder + @"
+            OFFSET (@PageNo - 1) * @PageSize ROWS
+            FETCH NEXT @PageSize ROWS ONLY;";
+
+                var result = await conn.QueryAsync(sql, parameters);
+
                 var resultlist = result.Select(x => new MenuItemsTO
                 {
                     MenuItemId = x.MenuItemId ?? 0,
@@ -89,6 +113,24 @@ namespace OFMS_API.DAL.Imple
                 throw;
             }
         }
+
+        #endregion
+
+        #region
+        public async Task<List<DropDownList>> GetCategoryDropDownListDAL()
+        {
+            var con = new SqlConnection(connq);
+            var query = "Select name as Text,id as Value from menu_categories";
+            var result = await con.QueryAsync<DropDownList>(query);
+            var resultlist = result.Select(raw => new DropDownList
+            {
+                Text = raw.Text,
+                Value = raw.Value
+            });
+
+            return resultlist.ToList();
+        }
+
         #endregion
 
         #endregion
@@ -129,19 +171,20 @@ namespace OFMS_API.DAL.Imple
             parameter.Add("@UpdatedAt", DateTime.Now, DbType.DateTime);
 
             string query = @"INSERT INTO menu_items
-                           (MenuName, ProductName, CategoryId, Status, Price, DiscountPercent,
-                           Ingredients, Description, CookingTimeMinutes, ImageUrl, ThumbnailUrl, CreatedAt, UpdatedAt)
-                           VALUES
-                           (@MenuName, @ProductName, @CategoryId, @Status, @Price, @DiscountPercent,
-                           @Ingredients, @Description, @CookingTimeMinutes, @ImageUrl, @ThumbnailUrl, @CreatedAt, @UpdatedAt);
-                           SELECT CAST(SCOPE_IDENTITY() as int);";
+                    (MenuName, ProductName, CategoryId, Status, Price, DiscountPercent,
+                    Ingredients, Description, CookingTimeMinutes, ImageUrl, ThumbnailUrl, CreatedAt, UpdatedAt)
+                    VALUES
+                    (@MenuName, @ProductName, @CategoryId, @Status, @Price, @DiscountPercent,
+                    @Ingredients, @Description, @CookingTimeMinutes, @ImageUrl, @ThumbnailUrl, @CreatedAt, @UpdatedAt);
+                    SELECT CAST(SCOPE_IDENTITY() as int);";
 
             int newId = await conn.ExecuteScalarAsync<int>(query, parameter);
             return newId;
         }
+
         #endregion
 
-        #region
+        #region AddDublicateMenuItemDAL
         public async Task<int> AddDublicateMenuItemDAL(CopyDublicateItemTO itemTO)
         {
             using var conn = new SqlConnection(connq);
@@ -160,7 +203,7 @@ namespace OFMS_API.DAL.Imple
                 else
                 {
                     columns += ",Price,DiscountPercent";
-                    selectColumns += ",0,0"; 
+                    selectColumns += ",0,0";
                 }
                 if (itemTO.Copyingredients == true)
                 {

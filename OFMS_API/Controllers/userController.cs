@@ -27,8 +27,8 @@ namespace OFMS_API.Controllers
         /// <response code="200">Users retrieved successfully</response>
         /// <response code="204">No users found</response>
         /// <response code="500">Server error</response>
-        [HttpGet("GetAllUserInfo")]
-        public async Task<IActionResult> GetAllUserList([FromQuery] FilterModelTO filter)
+        [HttpPost("GetAllUserInfo")]
+        public async Task<IActionResult> GetAllUserList([FromBody] FilterModelTO filter)
         {
             var response = new GlobalResponseModel<OutPutClass<TblUserTO>>
             {

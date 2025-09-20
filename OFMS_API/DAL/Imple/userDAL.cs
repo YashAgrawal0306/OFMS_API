@@ -28,8 +28,8 @@ namespace OFMS_API.DAL.Imple
             using var conn = new SqlConnection(connq);
 
             // Default values for pagination
-            int pageNo = filter.PageNo <= 0 ? 1 : filter.PageNo;
-            int pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+            int pageNo =  filter.PageNo ?? 0;
+            int pageSize =  filter.PageSize ?? 0;
             int offset = (pageNo - 1) * pageSize;
 
             // Base query
