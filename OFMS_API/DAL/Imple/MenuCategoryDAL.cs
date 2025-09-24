@@ -63,26 +63,51 @@ namespace OFMS_API.DAL.Imple
             {
                 using var conn = new SqlConnection(connq);
 
-                // Apply safe defaults
-                int pageSize = filterModelTO.PageSize ?? 0;
-                int pageNo = filterModelTO.PageNo?? 0;
+                int pageSize = filterModelTO.PageSize ?? 10;
+                int pageNo = filterModelTO.PageNo ?? 1;
 
                 DynamicParameters parameters = new DynamicParameters();
                 parameters.Add("@CategoryId", filterModelTO.CategoryId, DbType.Int32);
-                parameters.Add("@SearchText", filterModelTO.SearchText, DbType.String);
+                parameters.Add("@SearchText", string.IsNullOrWhiteSpace(filterModelTO.SearchText) ? null : $"%{filterModelTO.SearchText}%", DbType.String);
                 parameters.Add("@IsActive", filterModelTO.isActive, DbType.Boolean);
                 parameters.Add("@PageSize", pageSize, DbType.Int32);
                 parameters.Add("@PageNo", pageNo, DbType.Int32);
 
                 var sql = @"
-            SELECT m.*, c.id AS CategoryId, c.name AS CategoryName
-            FROM menu_items m
-            INNER JOIN menu_categories c ON m.CategoryId = c.id
-            WHERE (@SearchText IS NULL OR @SearchText = m.ProductName OR @SearchText = m.MenuName)
-              AND (@IsActive IS NULL OR @IsActive = m.Status)
-            ORDER BY " + filterModelTO.SortColumn + " " + filterModelTO.SortOrder + @"
-            OFFSET (@PageNo - 1) * @PageSize ROWS
-            FETCH NEXT @PageSize ROWS ONLY;";
+                    ;WITH Paginated AS (
+                        SELECT 
+                            m.MenuItemId,
+                            m.MenuName,
+                            m.ProductName,
+                            m.CategoryId,
+                            c.name AS CategoryName,
+                            m.Status,
+                            m.Price,
+                            m.FinalPrice,
+                            m.DiscountPercent,
+                            m.Ingredients,
+                            m.Description,
+                            m.CookingTimeMinutes,    
+                            m.ImageUrl,
+                            m.ThumbnailUrl,
+                            m.CreatedAt,
+                            m.UpdatedAt,
+                            ROW_NUMBER() OVER (ORDER BY m.MenuItemId ASC) AS RowNum
+                        FROM menu_items m
+                        INNER JOIN menu_categories c ON m.CategoryId = c.id
+                        WHERE (@SearchText IS NULL 
+                               OR (m.MenuName LIKE @SearchText 
+                                   OR m.ProductName LIKE @SearchText 
+                                   OR c.Name LIKE @SearchText 
+                                   OR m.Description LIKE @SearchText 
+                                   OR m.Ingredients LIKE @SearchText))
+                          AND (@IsActive IS NULL OR m.Status = @IsActive)
+                          AND (@CategoryId IS NULL OR m.CategoryId = @CategoryId)
+                    )
+                    SELECT *
+                    FROM Paginated
+                    WHERE RowNum BETWEEN ((@PageNo - 1) * @PageSize + 1) AND (@PageNo * @PageSize);
+                    ";
 
                 var result = await conn.QueryAsync(sql, parameters);
 

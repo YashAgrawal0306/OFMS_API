@@ -38,7 +38,7 @@ namespace OFMS_API.DAL.Imple
             // Add search filter if provided
             if (!string.IsNullOrEmpty(filter.SearchText))
             {
-                sql += " AND (UserName LIKE @Search OR UserEmail LIKE @Search OR PhoneNumber LIKE @Search)";
+                sql += " AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)";
             }
 
             // Add sorting
@@ -50,12 +50,25 @@ namespace OFMS_API.DAL.Imple
             sql += " OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
             // Query data
-            var list = await conn.QueryAsync<TblUserTO>(sql, new
+            var result = await conn.QueryAsync<TblUserTO>(sql, new
             {
                 Search = $"%{filter.SearchText}%",
                 Offset = offset,
                 PageSize = pageSize
             });
+            var list = result.Select(x => new TblUserTO
+            {
+                UserId = x.UserId != 0 ? Convert.ToInt32(x.UserId) : 0,
+                UserName = x.UserName,
+                UserEmail = x.UserEmail,
+                Phone_Number = x.Phone_Number,
+                ProfileImage = x.ProfileImage,
+                Date_Of_Birth = x.Date_Of_Birth == null ? (DateTime?)null : Convert.ToDateTime(x.Date_Of_Birth),
+                Created_At = x.Created_At == null ? (DateTime?)null : Convert.ToDateTime(x.Created_At),
+                Updated_At = x.Updated_At == null ? (DateTime?)null : Convert.ToDateTime(x.Updated_At),
+                IsActive = x.IsActive == null ? (bool?)null : Convert.ToBoolean(x.IsActive),
+                RoleId = x.RoleId == 0 ? 0 : Convert.ToInt32(x.RoleId)
+            }).ToList();
 
             // Get total count separately
             string countSql = "SELECT COUNT(*) FROM tbluser WHERE 1=1";
@@ -92,8 +105,8 @@ namespace OFMS_API.DAL.Imple
             parameter.Add("@UserName", customer.UserName, DbType.String);
             parameter.Add("@UserEmail", customer.UserEmail, DbType.String);
             parameter.Add("@Password", hasPass, DbType.String);
-            parameter.Add("@Phone_number", customer.PhoneNumber, DbType.String);
-            parameter.Add("@Date_of_birth", customer.DateOfBirth, DbType.Date);
+            parameter.Add("@Phone_number", customer.Phone_Number, DbType.String);
+            parameter.Add("@Date_of_birth", customer.Date_Of_Birth, DbType.Date);
             parameter.Add("@Profile_image", customer.ProfileImage, DbType.String);
             parameter.Add("@IsActive", customer.IsActive, DbType.String);
             parameter.Add("@created_at", DateTime.Now, DbType.DateTime);
