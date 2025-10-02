@@ -21,6 +21,7 @@ namespace OFMS_API.Controllers
         #region Get
         #region Get All Category
         [HttpGet("GetAllCategory")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllCategory()
         {
             var response = new GlobalResponseModel<List<MenuCategoriesTO>>
@@ -62,7 +63,7 @@ namespace OFMS_API.Controllers
         #region Get All MenuItem
         [HttpPost("GetAllMenuItemList")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllMenuItemList([FromForm]FilterModelTO filterModelTO)
+        public async Task<IActionResult> GetAllMenuItemList([FromBody]FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<List<MenuItemsTO>>
             {

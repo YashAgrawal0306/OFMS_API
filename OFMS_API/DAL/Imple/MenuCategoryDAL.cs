@@ -95,14 +95,14 @@ namespace OFMS_API.DAL.Imple
                             ROW_NUMBER() OVER (ORDER BY m.MenuItemId ASC) AS RowNum
                         FROM menu_items m
                         INNER JOIN menu_categories c ON m.CategoryId = c.id
-                        WHERE (@SearchText IS NULL 
+                        WHERE (@SearchText IS NULL OR @SearchText  = ''
                                OR (m.MenuName LIKE @SearchText 
                                    OR m.ProductName LIKE @SearchText 
                                    OR c.Name LIKE @SearchText 
                                    OR m.Description LIKE @SearchText 
                                    OR m.Ingredients LIKE @SearchText))
                           AND (@IsActive IS NULL OR m.Status = @IsActive)
-                          AND (@CategoryId IS NULL OR m.CategoryId = @CategoryId)
+                          AND (@CategoryId = 0 OR m.CategoryId = @CategoryId)
                     )
                     SELECT *
                     FROM Paginated

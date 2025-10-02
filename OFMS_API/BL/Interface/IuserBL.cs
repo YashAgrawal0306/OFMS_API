@@ -7,5 +7,6 @@ namespace OFMS_API.BL.Interface
         Task<OutPutClass<TblUserTO>> GetAllCust(FilterModelTO filter);
         Task<int> AddNewCustomerBL(TblUserTO customerDTO);
         Task<string> LoginBL(TblUserLogin tbluserlogin);
+        Task<OutPutClass<TblUserTO>> GetAllMemberList(FilterModelTO filter);
     }
 }

@@ -23,7 +23,19 @@ namespace OFMS_API.BL.Imple
 
         public async Task<string> LoginBL(TblUserLogin loginCustomer)
         {
-           return await dal.LoginDAL(loginCustomer);
+            return await dal.LoginDAL(loginCustomer);
+        }
+
+        public async Task<OutPutClass<TblUserTO>> GetAllMemberList(FilterModelTO filter)
+        {
+            try
+            {
+                return await dal.GetAllMemberList(filter);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

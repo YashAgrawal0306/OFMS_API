@@ -27,29 +27,23 @@ namespace OFMS_API.DAL.Imple
         {
             using var conn = new SqlConnection(connq);
 
-            // Default values for pagination
-            int pageNo =  filter.PageNo ?? 0;
-            int pageSize =  filter.PageSize ?? 0;
+            int pageNo = filter.PageNo ?? 0;
+            int pageSize = filter.PageSize ?? 0;
             int offset = (pageNo - 1) * pageSize;
 
-            // Base query
             string sql = "SELECT * FROM tbluser WHERE 1=1";
 
-            // Add search filter if provided
             if (!string.IsNullOrEmpty(filter.SearchText))
             {
                 sql += " AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)";
             }
 
-            // Add sorting
             string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "UserId" : filter.SortColumn;
             string sortOrder = string.IsNullOrEmpty(filter.SortOrder) ? "ASC" : filter.SortOrder.ToUpper();
             sql += $" ORDER BY {sortColumn} {sortOrder}";
 
-            // Add pagination
             sql += " OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
 
-            // Query data
             var result = await conn.QueryAsync<TblUserTO>(sql, new
             {
                 Search = $"%{filter.SearchText}%",
@@ -70,7 +64,6 @@ namespace OFMS_API.DAL.Imple
                 RoleId = x.RoleId == 0 ? 0 : Convert.ToInt32(x.RoleId)
             }).ToList();
 
-            // Get total count separately
             string countSql = "SELECT COUNT(*) FROM tbluser WHERE 1=1";
             if (!string.IsNullOrEmpty(filter.SearchText))
             {
@@ -85,13 +78,99 @@ namespace OFMS_API.DAL.Imple
             };
         }
 
+        public async Task<OutPutClass<TblUserTO>> GetAllMemberList(FilterModelTO filter)
+        {
+            try
+            {
+                using var conn = new SqlConnection(connq);
+
+                int pageNo = filter.PageNo ?? 1;
+                int pageSize = filter.PageSize ?? 10;
+                int offset = (pageNo - 1) * pageSize;
+
+                var sqlquery = new StringBuilder();
+                sqlquery.Append("SELECT  UserId, UserName, UserEmail, Phone_Number, Profile_Image, Date_Of_Birth,Created_At, Updated_At, IsActive, RoleId FROM tbluser WHERE roleId != 6");
+
+                if (!string.IsNullOrEmpty(filter.SearchText))
+                {
+                    sqlquery.Append(" AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)");
+                }
+
+                if (filter.RoleId != 0)
+                {
+                    sqlquery.Append(" AND roleId = @RoleId");
+                }
+
+                string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "UserId" : filter.SortColumn;
+                string sortOrder = string.IsNullOrEmpty(filter.SortOrder) ? "ASC" : filter.SortOrder.ToUpper();
+                sqlquery.Append($" ORDER BY {sortColumn} {sortOrder}");
+
+                sqlquery.Append(" OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
+
+                var result = await conn.QueryAsync<TblUserTO>(sqlquery.ToString(), new
+                {
+                    Search = $"%{filter.SearchText}%",
+                    RoleId = filter.RoleId,
+                    Offset = offset,
+                    PageSize = pageSize
+                });
+
+                var list = result.Select(x => new TblUserTO
+                {
+                    UserId = x.UserId,
+                    UserName = x.UserName,
+                    UserEmail = x.UserEmail,
+                    Phone_Number = x.Phone_Number,
+                    ProfileImage = x.ProfileImage,
+                    Date_Of_Birth = x.Date_Of_Birth,
+                    Created_At = x.Created_At,
+                    Updated_At = x.Updated_At,
+                    IsActive = x.IsActive,
+                    RoleId = x.RoleId
+                }).ToList();
+
+                var countQuery = new StringBuilder("SELECT COUNT(*) FROM tbluser WHERE roleId != 6");
+
+                if (!string.IsNullOrEmpty(filter.SearchText))
+                {
+                    countQuery.Append(" AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)");
+                }
+
+                if (filter.RoleId != 0)
+                {
+                    countQuery.Append(" AND roleId = @RoleId");
+                }
+
+                int total = await conn.ExecuteScalarAsync<int>(countQuery.ToString(), new
+                {
+                    Search = $"%{filter.SearchText}%",
+                    RoleId = filter.RoleId
+                });
+
+                return new OutPutClass<TblUserTO>
+                {
+                    List = list,
+                    TotalUser = total
+                };
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
         public async Task<int> AddNewCustomerDAL(TblUserTO customer)
         {
             var pass = customer.Password ?? "";
             SHA256 sHA256 = SHA256.Create();
             byte[] bytes = Encoding.UTF8.GetBytes(pass);
             byte[] hasbyte = sHA256.ComputeHash(bytes);
-
+            string path = "";
+            if (customer.ProfileImage != null)
+            {
+                 path = Helper.Common.Utility.StoreFileInLocalFolder(customer.ProfileImage);
+            }
             StringBuilder builder = new StringBuilder();
 
             foreach (var b in hasbyte)
@@ -107,7 +186,7 @@ namespace OFMS_API.DAL.Imple
             parameter.Add("@Password", hasPass, DbType.String);
             parameter.Add("@Phone_number", customer.Phone_Number, DbType.String);
             parameter.Add("@Date_of_birth", customer.Date_Of_Birth, DbType.Date);
-            parameter.Add("@Profile_image", customer.ProfileImage, DbType.String);
+            parameter.Add("@Profile_image", path, DbType.String);
             parameter.Add("@IsActive", customer.IsActive, DbType.String);
             parameter.Add("@created_at", DateTime.Now, DbType.DateTime);
             parameter.Add("@updated_at", DateTime.Now, DbType.DateTime);
@@ -162,8 +241,10 @@ namespace OFMS_API.DAL.Imple
                 expires: DateTime.Now.AddMinutes(100),
                 signingCredentials: credential
                 );
-            string token =await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(gettoken));
+            string token = await Task.FromResult(new JwtSecurityTokenHandler().WriteToken(gettoken));
             return token;
         }
+
+
     }
 }

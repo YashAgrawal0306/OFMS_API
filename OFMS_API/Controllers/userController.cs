@@ -17,7 +17,7 @@ namespace OFMS_API.Controllers
         {
             db = add;
         }
-        #region User Management
+        #region GetAllUserList
 
         /// <summary>
         /// Retrieves a filtered list of users
@@ -47,7 +47,7 @@ namespace OFMS_API.Controllers
                     response.statusCode = StatusCodes.Status204NoContent;
                     response.status = "Success";
                     response.data = new OutPutClass<TblUserTO>();
-                    return StatusCode(StatusCodes.Status204NoContent, response);
+                    return Ok(response);
                 }
 
                 response.data = result;
@@ -66,11 +66,10 @@ namespace OFMS_API.Controllers
 
         #endregion
 
-
-        #region User Management
+        #region AddNewUserTO
         [HttpPost("AddNewUser")]
         [AllowAnonymous]
-        public async Task<IActionResult> AddNewUserTO([FromBody] object data)
+        public async Task<IActionResult> AddNewUserTO([FromForm] TblUserTO user)
         {
             var response = new GlobalResponseModel<int>
             {
@@ -79,8 +78,7 @@ namespace OFMS_API.Controllers
                 status = "Success"
             };
 
-            // Early return for null or invalid payload
-            if (data == null)
+            if (user == null || string.IsNullOrWhiteSpace(user.UserName))
             {
                 response.message = "Invalid user data";
                 response.statusCode = StatusCodes.Status400BadRequest;
@@ -91,31 +89,16 @@ namespace OFMS_API.Controllers
 
             try
             {
-                string json = data.ToString() ?? "";
-
-                TblUserTO? user = JsonConvert.DeserializeObject<TblUserTO>(json);
-
-                if (user == null || string.IsNullOrWhiteSpace(user.UserName))
-                {
-                    response.message = "User deserialization failed or missing required fields";
-                    response.statusCode = StatusCodes.Status400BadRequest;
-                    response.status = "Fail";
-                    response.data = 0;
-                    return BadRequest(response);
-                }
-
-                int result = await db.AddNewCustomerBL(user).ConfigureAwait(false);
+                int result = await db.AddNewCustomerBL(user);
+                response.data = result;
 
                 if (result != 1)
                 {
-                    response.message = "Data is not added";
-                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.message = "Data not added";
                     response.status = "Error";
-                    response.data = result;
-                    return Ok(response);
+                    response.statusCode = StatusCodes.Status500InternalServerError;
                 }
 
-                response.data = result;
                 return Ok(response);
             }
             catch (Exception ex)
@@ -129,9 +112,10 @@ namespace OFMS_API.Controllers
             }
         }
 
+
         #endregion
 
-        #region User Authentication
+        #region LoginUser
 
         [HttpPost("Login")]
         [AllowAnonymous]
@@ -177,6 +161,58 @@ namespace OFMS_API.Controllers
                 response.statusCode = StatusCodes.Status500InternalServerError;
                 response.status = "Error";
                 response.data = string.Empty;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        #endregion
+
+        #region Member Management
+
+        /// <summary>
+        /// Retrieves a filtered list of members
+        /// </summary>
+        /// <param name="filter">FilterModelTO object containing filter criteria</param>
+        /// <returns>GlobalResponseModel with list of members</returns>
+        /// <response code="200">Members retrieved successfully</response>
+        /// <response code="204">No members found</response>
+        /// <response code="500">Server error</response>
+        [HttpPost("GetAllMemberList")]
+        [ProducesResponseType(typeof(GlobalResponseModel<List<TblUserTO>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllMemberList([FromBody] FilterModelTO filter)
+        {
+            var response = new GlobalResponseModel<OutPutClass<TblUserTO>>
+            {
+                message = "Members retrieved successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var memberList = await db.GetAllMemberList(filter).ConfigureAwait(false);
+
+                if (memberList == null)
+                {
+                    response.message = "No members found";
+                    response.statusCode = StatusCodes.Status204NoContent;
+                    response.status = "Success";
+                    response.data = new OutPutClass<TblUserTO>();
+                    return Ok(response);
+                }
+
+                response.data = memberList;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = new OutPutClass<TblUserTO>();
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
