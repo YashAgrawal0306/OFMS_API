@@ -10,7 +10,7 @@
         public string? MenuItemName { get; set; }
         public string? MenuItemDescription { get; set; }
         public string? MenuItemImageUrl { get; set; }
-        public decimal? MenuItemPrice { get; set; }
+        public decimal MenuItemPrice { get; set; }
 
     }
 }

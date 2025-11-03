@@ -10,13 +10,12 @@ namespace OFMS_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class userController : ControllerBase
+    public class UserController(IuserBL db) : ControllerBase
     {
-        private readonly IuserBL db;
-        public userController(IuserBL add)
-        {
-            db = add;
-        }
+        //private readonly IuserBL db;
+
+        //public UserController(IuserBL add) => db = add;
+        
         #region GetAllUserList
 
         /// <summary>

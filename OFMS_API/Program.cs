@@ -2,7 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
-using OFMS_API.Helper;
+using OFMS_API.Helper.Register;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +14,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.CommonRegister();
+builder.Services.AddSignalR();
 
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>

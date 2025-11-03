@@ -8,16 +8,8 @@ namespace OFMS_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MenuCategory : ControllerBase
+    public class MenuCategory(IMenuCategoryBL _bl) : ControllerBase
     {
-        #region ctor
-        private readonly IMenuCategoryBL _bl;
-        public MenuCategory(IMenuCategoryBL menuCategory)
-        {
-            _bl = menuCategory;
-        }
-        #endregion
-
         #region Get
         #region Get All Category
         [HttpGet("GetAllCategory")]
@@ -85,7 +77,7 @@ namespace OFMS_API.Controllers
                     return Ok(response);
                 }
 
-                response.data = menuList.ToList();
+                response.data = menuList;
                 return Ok(response);
             }
             catch (Exception ex)
@@ -122,7 +114,7 @@ namespace OFMS_API.Controllers
                     response.message = "No menu items found";
                     return Ok(response);
                 }
-                response.data= result.ToList();
+                response.data= result;
                 return Ok(response) ;
             }
             catch (Exception ex)

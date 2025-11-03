@@ -4,13 +4,8 @@ using OFMS_API.Models;
 
 namespace OFMS_API.BL.Imple
 {
-    public class UserBL : IuserBL
+    public class UserBL(IuserDAL dal) : IuserBL
     {
-        private readonly IuserDAL dal;
-        public UserBL(IuserDAL dAL)
-        {
-            dal = dAL;
-        }
         public async Task<OutPutClass<TblUserTO>> GetAllCust(FilterModelTO filter)
         {
             return await dal.GetAllCustomer(filter);

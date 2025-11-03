@@ -8,10 +8,10 @@ namespace OFMS_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController : ControllerBase
+    public class OrderController(IOrderBL _iOrderbl): ControllerBase
     {
-        private readonly IOrderBL _iOrderbl;
-        public OrderController(IOrderBL iOrderbl) => _iOrderbl = iOrderbl;
+        //private readonly IOrderBL _iOrderbl;
+        //public OrderController(IOrderBL iOrderbl) => _iOrderbl = iOrderbl;
 
         #region Cart Management
         [HttpPost("AddTOCart")]
@@ -25,7 +25,6 @@ namespace OFMS_API.Controllers
             };
             int user = Convert.ToInt32(User.FindFirst("userId")?.Value);
             cart.UserId = user;
-            // Early return for validation
             if (cart == null || cart.MenuItemId <= 0 || cart.Quantity <= 0)
             {
                 response.message = "Invalid cart data";
@@ -47,7 +46,6 @@ namespace OFMS_API.Controllers
                     response.data = id;
                     return BadRequest(response);
                 }
-
                 response.data = id;
                 return Ok(response);
             }
@@ -63,6 +61,8 @@ namespace OFMS_API.Controllers
         }
         #endregion
 
+        #region GetMyCartItem
+
         [HttpGet("GetMyCartItem")]
         public async Task<IActionResult> GetMyCartItem()
         {
@@ -75,14 +75,13 @@ namespace OFMS_API.Controllers
             int userId = Convert.ToInt32(User.FindFirst("userId")?.Value);
             try
             {
-                // Assuming a method GetMyCartItems exists in the business layer
                 var cartItems = await _iOrderbl.GetMyCartItem(userId).ConfigureAwait(false);
                 if (cartItems == null)
                 {
                     response.message = "No cart items found";
                     response.statusCode = StatusCodes.Status404NotFound;
                     response.status = "Fail";
-                    response.data = new List<MyCartDTO>();
+                    response.data = [];
                     return Ok(response);
                 }
                 response.data = cartItems;
@@ -94,10 +93,36 @@ namespace OFMS_API.Controllers
                 response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
                 response.statusCode = StatusCodes.Status500InternalServerError;
                 response.status = "Error";
-                response.data = null;
+                response.data = [];
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
 
+        #endregion
+
+        #region RemoveCartItem
+        [HttpDelete("RemoveCartItem")]
+        public async Task<IActionResult> RemoveCartItem(int cartid)
+        {
+            int result = await _iOrderbl.RemoveCartItem(cartid).ConfigureAwait(false);
+            return Ok(result);
+        }
+        #endregion
+
+
+        [HttpGet("GetCartSummaryDeatil")]
+        public async Task<IActionResult> GetCartSummaryDeatil()
+        {
+            int userId = Convert.ToInt32(User.FindFirst("userId")?.Value);
+            var result = await _iOrderbl.GetCartSummaryDeatil(userId).ConfigureAwait(false);
+            return Ok(result);
+        }
+       
+        [HttpPut("UpdateCartItem")]
+        public async Task<IActionResult> UpdateCartItem(int cartId, int quantity)
+        {
+            int id = await _iOrderbl.UpdateCartItem(cartId,quantity).ConfigureAwait(false);
+            return Ok(id);
+        }
     }
 }
