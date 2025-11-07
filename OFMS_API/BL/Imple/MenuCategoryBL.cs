@@ -11,13 +11,20 @@ namespace OFMS_API.BL.Imple
 
         public async Task<List<MenuItemsTO>> GatAllMenuItemListBL(FilterModelTO filterModelTO)
         {
-            var result =await _menuCategoryDAL.GetAllMenuItemsListDAL(filterModelTO);
+            var result = await _menuCategoryDAL.GetAllMenuItemsListDAL(filterModelTO);
             return result;
         }
 
         public async Task<List<MenuCategoriesTO>> GetCategoriesBL()
         {
-            return await _menuCategoryDAL.GetAllCategoriesDAL();
+            try
+            {
+                return await _menuCategoryDAL.GetAllCategoriesDAL();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<List<DropDownList>> GetCategoryDropDownListBL()

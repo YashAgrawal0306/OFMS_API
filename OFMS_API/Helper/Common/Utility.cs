@@ -1,4 +1,7 @@
-﻿namespace OFMS_API.Helper.Common
+﻿using OFMS_API.Models;
+using Serilog;
+
+namespace OFMS_API.Helper.Common
 {
     public class Utility
     {

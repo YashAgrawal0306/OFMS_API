@@ -89,6 +89,7 @@ namespace OFMS_API.Controllers
             }
             catch (Exception ex)
             {
+              
                 response.exception = ex;
                 response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
                 response.statusCode = StatusCodes.Status500InternalServerError;

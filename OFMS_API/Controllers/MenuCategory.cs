@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OFMS_API.BL.Interface;
 using OFMS_API.Models;
+using OFMS_API.SerilogMiddleware;
 
 namespace OFMS_API.Controllers
 {
@@ -13,6 +14,7 @@ namespace OFMS_API.Controllers
         #region Get
         #region Get All Category
         [HttpGet("GetAllCategory")]
+        [ApiCode("FE001")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllCategory()
         {
@@ -55,6 +57,7 @@ namespace OFMS_API.Controllers
         #region Get All MenuItem
         [HttpPost("GetAllMenuItemList")]
         [AllowAnonymous]
+        [ApiCode("FE002")]
         public async Task<IActionResult> GetAllMenuItemList([FromBody]FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<List<MenuItemsTO>>
