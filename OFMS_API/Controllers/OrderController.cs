@@ -102,28 +102,156 @@ namespace OFMS_API.Controllers
         #endregion
 
         #region RemoveCartItem
-        [HttpDelete("RemoveCartItem")]
+        #region Cart Management
+ 
+        [HttpDelete("RemoveCartItem")] 
         public async Task<IActionResult> RemoveCartItem(int cartid)
         {
-            int result = await _iOrderbl.RemoveCartItem(cartid).ConfigureAwait(false);
-            return Ok(result);
+            var response = new GlobalResponseModel<int>
+            {
+                message = "Cart item removed successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+             
+            if (cartid <= 0)
+            {
+                response.message = "Invalid cart ID";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                response.status = "Fail";
+                response.data = 0;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                int result = await _iOrderbl.RemoveCartItem(cartid).ConfigureAwait(false);
+
+                if (result <= 0)
+                {
+                    response.message = "Cart item not found or could not be removed";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    response.status = "Fail";
+                    response.data = result;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = 0;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
         }
+
+        #endregion
+
         #endregion
 
 
+        #region Cart Management
         [HttpGet("GetCartSummaryDeatil")]
+       
         public async Task<IActionResult> GetCartSummaryDeatil()
         {
-            int userId = Convert.ToInt32(User.FindFirst("userId")?.Value);
-            var result = await _iOrderbl.GetCartSummaryDeatil(userId).ConfigureAwait(false);
-            return Ok(result);
+            var response = new GlobalResponseModel<CartSummaryDetails>
+            {
+                message = "Cart summary retrieved successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            { 
+                var userIdClaim = User.FindFirst("userId")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || userId <= 0)
+                {
+                    response.message = "Unauthorized or invalid user";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    response.status = "Fail";
+                    response.data = null!;
+                    return Unauthorized(response);
+                }
+
+                var result = await _iOrderbl.GetCartSummaryDeatil(userId).ConfigureAwait(false);
+
+                if (result == null)
+                {
+                    response.message = "No cart items found";
+                    response.statusCode = StatusCodes.Status204NoContent;
+                    response.status = "Success";
+                    response.data = null!;
+                    return StatusCode(StatusCodes.Status204NoContent, response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = null!;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
         }
-       
-        [HttpPut("UpdateCartItem")]
+
+        #endregion 
+        #region Cart Management
+        [HttpPut("UpdateCartItem")] 
         public async Task<IActionResult> UpdateCartItem(int cartId, int quantity)
         {
-            int id = await _iOrderbl.UpdateCartItem(cartId,quantity).ConfigureAwait(false);
-            return Ok(id);
-        }
+            var response = new GlobalResponseModel<int>
+            {
+                message = "Cart item updated successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+             
+            if (cartId <= 0 || quantity <= 0)
+            {
+                response.message = "Invalid cart ID or quantity";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                response.status = "Fail";
+                response.data = 0;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                int result = await _iOrderbl.UpdateCartItem(cartId, quantity).ConfigureAwait(false);
+
+                if (result <= 0)
+                {
+                    response.message = "Cart item not found or update failed";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    response.status = "Fail";
+                    response.data = result;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = 0;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        } 
+        #endregion
+
     }
 }

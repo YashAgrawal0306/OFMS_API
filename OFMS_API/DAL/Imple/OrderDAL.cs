@@ -71,7 +71,7 @@ namespace OFMS_API.DAL.Imple
                         c.CartId,
                         c.UserId,
                         c.MenuItemId,
-                        mi.ProductName AS MenuItemName,a
+                        mi.ProductName AS MenuItemName,
                         mi.Description AS MenuItemDescription,
                         mi.Price AS MenuItemPrice,
                         mi.ImageUrl AS MenuItemImageUrl,

@@ -17,15 +17,6 @@ namespace OFMS_API.Controllers
         //public UserController(IuserBL add) => db = add;
         
         #region GetAllUserList
-
-        /// <summary>
-        /// Retrieves a filtered list of users
-        /// </summary>
-        /// <param name="filter">FilterModelTO object containing filter criteria</param>
-        /// <returns>GlobalResponseModel with list of users</returns>
-        /// <response code="200">Users retrieved successfully</response>
-        /// <response code="204">No users found</response>
-        /// <response code="500">Server error</response>
         [HttpPost("GetAllUserInfo")]
         public async Task<IActionResult> GetAllUserList([FromBody] FilterModelTO filter)
         {
@@ -125,9 +116,7 @@ namespace OFMS_API.Controllers
                 message = "Login successful",
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
-            };
-
-            // Early return for validation
+            }; 
             if (login == null || string.IsNullOrWhiteSpace(login.Email) || string.IsNullOrWhiteSpace(login.Password))
             {
                 response.message = "Invalid login credentials";
@@ -168,18 +157,7 @@ namespace OFMS_API.Controllers
 
         #region Member Management
 
-        /// <summary>
-        /// Retrieves a filtered list of members
-        /// </summary>
-        /// <param name="filter">FilterModelTO object containing filter criteria</param>
-        /// <returns>GlobalResponseModel with list of members</returns>
-        /// <response code="200">Members retrieved successfully</response>
-        /// <response code="204">No members found</response>
-        /// <response code="500">Server error</response>
-        [HttpPost("GetAllMemberList")]
-        [ProducesResponseType(typeof(GlobalResponseModel<List<TblUserTO>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(GlobalResponseModel<object[]>), StatusCodes.Status500InternalServerError)]
+        [HttpPost("GetAllMemberList")] 
         public async Task<IActionResult> GetAllMemberList([FromBody] FilterModelTO filter)
         {
             var response = new GlobalResponseModel<OutPutClass<TblUserTO>>
