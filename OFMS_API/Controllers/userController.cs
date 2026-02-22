@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using OFMS_API.BL.Interface;
-using OFMS_API.DAL.Interface;
 using OFMS_API.Models;
 
 namespace OFMS_API.Controllers

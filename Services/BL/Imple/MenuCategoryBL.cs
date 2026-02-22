@@ -1,14 +1,18 @@
 ﻿using OFMS_API.BL.Interface;
-using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Models;
 
 namespace OFMS_API.BL.Imple
 {
-    public class MenuCategoryBL(IMenuCategoryDAL menuCategoryDAL) : IMenuCategoryBL
-    {
-        private readonly IMenuCategoryDAL _menuCategoryDAL = menuCategoryDAL;
 
+    public class MenuCategoryBL : IMenuCategoryBL
+    {
+        private readonly IMenuCategoryDAL _menuCategoryDAL;
+
+        public MenuCategoryBL(IMenuCategoryDAL menuCategoryDAL)
+        {
+            _menuCategoryDAL = menuCategoryDAL;
+        }
         public async Task<List<MenuItemsTO>> GatAllMenuItemListBL(FilterModelTO filterModelTO)
         {
             var result = await _menuCategoryDAL.GetAllMenuItemsListDAL(filterModelTO);
@@ -19,7 +23,8 @@ namespace OFMS_API.BL.Imple
         {
             try
             {
-                return await _menuCategoryDAL.GetAllCategoriesDAL();
+                var data = await _menuCategoryDAL.GetAllCategoriesDAL();
+                return data;
             }
             catch (Exception)
             {

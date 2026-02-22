@@ -1,5 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
-using OFMS_API.Models;
+﻿using OFMS_API.Models;
 
 namespace OFMS_API.DAL.Interface
 {

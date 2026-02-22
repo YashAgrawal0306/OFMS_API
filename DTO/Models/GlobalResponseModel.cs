@@ -1,4 +1,6 @@
-﻿namespace OFMS_API.Models
+﻿using Microsoft.AspNetCore.Http;
+
+namespace OFMS_API.Models
 {
     public class GlobalResponseModel<T>
     {

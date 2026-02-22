@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using OFMS_API.BL.Imple;
+using OFMS_API.BL.Interface;
 using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Helper.Register;
-using OFMS_API.SerilogMiddleware;
 using Serilog;
 using System.Text;
 
@@ -28,17 +29,20 @@ builder.Services.AddSwaggerGen();
 builder.Services.CommonRegister();
 builder.Services.AddSignalR();
 
+builder.Services.AddScoped<IuserDAL, userDAL>();
+builder.Services.AddScoped<IMenuCategoryDAL, menuCategoryDAL>();
+builder.Services.AddScoped<IOrderDAL, OrderDAL>();
 
+//bl class
+builder.Services.AddScoped<IuserBL, UserBL>();
+builder.Services.AddScoped<IMenuCategoryBL, MenuCategoryBL>();
+builder.Services.AddScoped<IOrderBL, OrderBL>();
 
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
-        //policy.WithOrigins("http://localhost:54356", "http://localhost:4200", "http://localhost:50856")
-        //      .AllowAnyHeader()
-        //      .AllowAnyMethod();
-
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();

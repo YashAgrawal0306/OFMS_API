@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.SqlClient;
-using OFMS_API.BL.Imple;
+using Microsoft.Extensions.Configuration;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Helper.Hub;
 using OFMS_API.Helper.Hub.Service;
@@ -13,7 +13,7 @@ namespace OFMS_API.DAL.Imple
     public class OrderDAL : IOrderDAL
     {
         private readonly string connq;
-        private readonly IHubContext<CartSignalR,ICartSignalR> _hubContext;
+        private readonly IHubContext<CartSignalR, ICartSignalR> _hubContext;
         public OrderDAL(IConfiguration configuration, IHubContext<CartSignalR, ICartSignalR> hubContext)
         {
             connq = configuration.GetConnectionString("DefaultConnection") ?? "";
