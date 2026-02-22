@@ -1,4 +1,5 @@
-﻿using OFMS_API.Models;
+﻿using DTO.Models.CommonModel;
+using OFMS_API.Models;
 
 namespace OFMS_API.DAL.Interface
 {

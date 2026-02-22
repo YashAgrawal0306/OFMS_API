@@ -1,9 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace OFMS_API.Helper.Common
 {
     public class Utility
     {
+        private readonly HttpContextAccessor _httpContextAccessor ;
+        public Utility(HttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
         public static string FormatExceptionMessage(Exception ex)
         {
             if (ex == null)
@@ -22,5 +28,29 @@ namespace OFMS_API.Helper.Common
             }
             return fileName;
         }
+
+        //public static int? GetUserId()
+        //{ 
+
+        //    var httpContext = _httpContextAccessor.HttpContext;
+
+        //    if (httpContext == null)
+        //        return null;
+
+        //    var user = httpContext.User;
+
+        //    if (user == null || !user.Identity.IsAuthenticated)
+        //        return null;
+
+        //    var userIdClaim = user.FindFirst("userId");
+
+        //    if (userIdClaim == null)
+        //        return null;
+
+        //    if (int.TryParse(userIdClaim.Value, out var id))
+        //        return id;
+
+        //    return null;
+        //}
     }
 }

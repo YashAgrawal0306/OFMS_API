@@ -5,7 +5,11 @@ using OFMS_API.BL.Interface;
 using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Helper.Register;
+using Repository.DAL.Imple.Master;
+using Repository.DAL.Interface.Master.ItemMaster;
 using Serilog;
+using Services.BL.Imple.Master.ItemMaster;
+using Services.BL.Interface.Master.ItemMaster;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,11 +36,13 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<IuserDAL, userDAL>();
 builder.Services.AddScoped<IMenuCategoryDAL, menuCategoryDAL>();
 builder.Services.AddScoped<IOrderDAL, OrderDAL>();
+builder.Services.AddScoped<IItemMasterDAL, ItemMasterDAL>();
 
 //bl class
 builder.Services.AddScoped<IuserBL, UserBL>();
 builder.Services.AddScoped<IMenuCategoryBL, MenuCategoryBL>();
 builder.Services.AddScoped<IOrderBL, OrderBL>();
+builder.Services.AddScoped<IItemMasterBL, ItemMasterBL>();
 
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>

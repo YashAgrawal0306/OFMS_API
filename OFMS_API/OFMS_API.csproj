@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Controllers\Customer\" />
     <Folder Include="Images\SiteImages\" />
     <Folder Include="Images\UserProfileImages\" />
     <Folder Include="Images\ProductImages\" />

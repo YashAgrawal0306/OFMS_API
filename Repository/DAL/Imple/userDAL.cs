@@ -1,4 +1,5 @@
-﻿using Dapper; 
+﻿using Dapper;
+using DTO.Models.CommonModel;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;

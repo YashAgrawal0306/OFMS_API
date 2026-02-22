@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace OFMS_API.Models
+namespace DTO.Models.CommonModel
 {
     public class GlobalResponseModel<T>
     {
@@ -8,6 +8,7 @@ namespace OFMS_API.Models
         public int statusCode { get; set; } = StatusCodes.Status200OK;
         public string status { get; set; } = "Success";
         public T data { get; set; } = default!;
+        public int? TotalRecords { get; set; }
         public List<string> errors { get; set; } = [];
         public Exception? exception { get; set; }
 

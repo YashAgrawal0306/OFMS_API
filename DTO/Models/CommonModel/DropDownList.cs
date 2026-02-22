@@ -1,4 +1,4 @@
-﻿namespace OFMS_API.Models
+﻿namespace DTO.Models.CommonModel
 {
     public class DropDownList
     {

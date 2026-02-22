@@ -1,9 +1,10 @@
 ﻿using Dapper;
+using DTO.Models.CommonModel;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration; 
+using Microsoft.Extensions.Configuration;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Models;
-using System.Data; 
+using System.Data;
 
 namespace OFMS_API.DAL.Imple
 {

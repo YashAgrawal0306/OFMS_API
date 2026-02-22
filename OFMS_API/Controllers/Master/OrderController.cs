@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DTO.Models.CommonModel;
+using Microsoft.AspNetCore.Mvc;
 using OFMS_API.BL.Interface;
 using OFMS_API.Models;
 using OFMS_API.Models.DTO;
 
-namespace OFMS_API.Controllers
+namespace OFMS_API.Controllers.Master
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController(IOrderBL _iOrderbl): ControllerBase
+    public class OrderController(IOrderBL _iOrderbl) : ControllerBase
     {
         //private readonly IOrderBL _iOrderbl;
         //public OrderController(IOrderBL iOrderbl) => _iOrderbl = iOrderbl;
@@ -88,7 +89,7 @@ namespace OFMS_API.Controllers
             }
             catch (Exception ex)
             {
-              
+
                 response.exception = ex;
                 response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
                 response.statusCode = StatusCodes.Status500InternalServerError;
@@ -102,8 +103,8 @@ namespace OFMS_API.Controllers
 
         #region RemoveCartItem
         #region Cart Management
- 
-        [HttpDelete("RemoveCartItem")] 
+
+        [HttpDelete("RemoveCartItem")]
         public async Task<IActionResult> RemoveCartItem(int cartid)
         {
             var response = new GlobalResponseModel<int>
@@ -112,7 +113,7 @@ namespace OFMS_API.Controllers
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
             };
-             
+
             if (cartid <= 0)
             {
                 response.message = "Invalid cart ID";
@@ -156,7 +157,7 @@ namespace OFMS_API.Controllers
 
         #region Cart Management
         [HttpGet("GetCartSummaryDeatil")]
-       
+
         public async Task<IActionResult> GetCartSummaryDeatil()
         {
             var response = new GlobalResponseModel<CartSummaryDetails>
@@ -167,7 +168,7 @@ namespace OFMS_API.Controllers
             };
 
             try
-            { 
+            {
                 var userIdClaim = User.FindFirst("userId")?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || userId <= 0)
                 {
@@ -205,7 +206,7 @@ namespace OFMS_API.Controllers
 
         #endregion 
         #region Cart Management
-        [HttpPut("UpdateCartItem")] 
+        [HttpPut("UpdateCartItem")]
         public async Task<IActionResult> UpdateCartItem(int cartId, int quantity)
         {
             var response = new GlobalResponseModel<int>
@@ -214,7 +215,7 @@ namespace OFMS_API.Controllers
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
             };
-             
+
             if (cartId <= 0 || quantity <= 0)
             {
                 response.message = "Invalid cart ID or quantity";
@@ -249,7 +250,7 @@ namespace OFMS_API.Controllers
                 response.data = 0;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
-        } 
+        }
         #endregion
 
     }

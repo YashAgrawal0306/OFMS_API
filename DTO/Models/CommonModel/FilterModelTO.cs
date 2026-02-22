@@ -1,11 +1,11 @@
-﻿namespace OFMS_API.Models
+﻿namespace DTO.Models.CommonModel
 {
     public class FilterModelTO
     {
         public int? PageNo { get; set; } = 1;
         public int? PageSize { get; set; } = 10;
         public string? SearchText { get; set; } = "";
-        public string? SortColumn { get; set; } 
+        public string? SortColumn { get; set; }
         public string? SortOrder { get; set; }
         public string? Flag { get; set; }
         public bool? isActive { get; set; } = true;

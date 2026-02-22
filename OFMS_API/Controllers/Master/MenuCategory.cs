@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DTO.Models.CommonModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OFMS_API.BL.Interface;
 using OFMS_API.Models;
 using OFMS_API.SerilogMiddleware;
 
-namespace OFMS_API.Controllers
+namespace OFMS_API.Controllers.Master
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -57,7 +58,7 @@ namespace OFMS_API.Controllers
         [HttpPost("GetAllMenuItemList")]
         [AllowAnonymous]
         [ApiCode("FE002")]
-        public async Task<IActionResult> GetAllMenuItemList([FromBody]FilterModelTO filterModelTO)
+        public async Task<IActionResult> GetAllMenuItemList([FromBody] FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<List<MenuItemsTO>>
             {
@@ -111,13 +112,13 @@ namespace OFMS_API.Controllers
                 if (result == null)
                 {
                     response.data = [];
-                    response.statusCode =StatusCodes.Status404NotFound;
+                    response.statusCode = StatusCodes.Status404NotFound;
                     response.status = "Success";
                     response.message = "No menu items found";
                     return Ok(response);
                 }
-                response.data= result;
-                return Ok(response) ;
+                response.data = result;
+                return Ok(response);
             }
             catch (Exception ex)
             {

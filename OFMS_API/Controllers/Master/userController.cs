@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DTO.Models.CommonModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using OFMS_API.BL.Interface;
 using OFMS_API.Models;
 
-namespace OFMS_API.Controllers
+namespace OFMS_API.Controllers.Master
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -14,7 +15,7 @@ namespace OFMS_API.Controllers
         //private readonly IuserBL db;
 
         //public UserController(IuserBL add) => db = add;
-        
+
         #region GetAllUserList
         [HttpPost("GetAllUserInfo")]
         public async Task<IActionResult> GetAllUserList([FromBody] FilterModelTO filter)
@@ -115,7 +116,7 @@ namespace OFMS_API.Controllers
                 message = "Login successful",
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
-            }; 
+            };
             if (login == null || string.IsNullOrWhiteSpace(login.Email) || string.IsNullOrWhiteSpace(login.Password))
             {
                 response.message = "Invalid login credentials";
@@ -156,7 +157,7 @@ namespace OFMS_API.Controllers
 
         #region Member Management
 
-        [HttpPost("GetAllMemberList")] 
+        [HttpPost("GetAllMemberList")]
         public async Task<IActionResult> GetAllMemberList([FromBody] FilterModelTO filter)
         {
             var response = new GlobalResponseModel<OutPutClass<TblUserTO>>
