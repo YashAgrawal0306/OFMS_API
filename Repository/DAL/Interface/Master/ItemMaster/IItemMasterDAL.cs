@@ -12,11 +12,14 @@ namespace Repository.DAL.Interface.Master.ItemMaster
     {
         #region Get Methods
         Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
+        Task<TblGroupMasterTO> GetGroupById(int IdGroup);
         Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
         Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
         #endregion
         #region Add Methods
         Task<int> AddGroupMaster(TblGroupMasterTO groupMaster);
         #endregion
+        Task<int> UpdateGroupMaster(TblGroupMasterTO groupMaster);
+        Task<int> DeleteGroupMaster(int idGroup);
     }
 }

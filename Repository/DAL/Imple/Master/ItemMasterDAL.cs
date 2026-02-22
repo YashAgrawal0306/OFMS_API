@@ -66,6 +66,38 @@ namespace Repository.DAL.Imple.Master
             return result;
         }
 
+        public async Task<int> DeleteGroupMaster(int idGroup)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var sql = @"DELETE FROM tblGroupMaster 
+                WHERE IdGroupMaster = @Id";
+
+            return await connection.ExecuteAsync(sql, new { Id = idGroup });
+        }
+
+        public async Task<TblGroupMasterTO> GetGroupById(int IdGroup)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var sql = @"SELECT 
+                    IdGroupMaster,
+                    GroupName,
+                    Description,
+                    IsActive,
+                    CreatedOn,
+                    CreatedBy,
+                    UpdatedOn,
+                    UpdatedBy
+                FROM tblGroupMaster
+                WHERE IsActive = 1
+                AND IdGroupMaster = @Id";
+
+            var data = await connection.QueryFirstOrDefaultAsync<TblGroupMasterTO>(sql, new { Id = IdGroup });
+            return data ?? new TblGroupMasterTO();
+        }
+
+
         public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
         {
             throw new NotImplementedException();
@@ -127,6 +159,32 @@ namespace Repository.DAL.Imple.Master
         public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<int> UpdateGroupMaster(TblGroupMasterTO groupMaster)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            var sql = @"
+                        UPDATE tblGroupMaster
+                        SET
+                            GroupName   = @GroupName,
+                            Description = @Description,
+                            IsActive    = @IsActive,
+                            UpdatedOn   = @UpdatedOn,
+                            UpdatedBy   = @UpdatedBy
+                        WHERE IdGroupMaster = @IdGroupMaster";
+
+            var rowsAffected = await connection.ExecuteAsync(sql, new
+            {
+                groupMaster.GroupName,
+                groupMaster.Description,
+                groupMaster.IsActive,
+                UpdatedOn = DateTime.Now,
+                groupMaster.UpdatedBy,
+                groupMaster.IdGroupMaster
+            });
+            return rowsAffected;
         }
     }
 }

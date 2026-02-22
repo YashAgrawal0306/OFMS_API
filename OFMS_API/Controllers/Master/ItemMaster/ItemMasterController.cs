@@ -67,7 +67,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             try
             {
                 var userIdClaim = User.FindFirst("userId");
-                int? Userid = userIdClaim != null? int.Parse(userIdClaim.Value) : null;
+                int? Userid = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
                 if (Userid == 0)
                 {
                     response.message = "Unauthorized user";
@@ -100,122 +100,131 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
-        //[HttpPut("Update")]
-        //public async Task<IActionResult> UpdateGroup([FromBody] TblGroupMasterTO model)
-        //{
-        //    var response = new GlobalResponseModel<int>
-        //    {
-        //        message = "Group updated successfully",
-        //        statusCode = StatusCodes.Status200OK,
-        //        status = "Success"
-        //    };
+        [HttpPut("UpdateGroupMaster")]
+        public async Task<IActionResult> UpdateGroupMaster([FromBody] TblGroupMasterTO model)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "Group updated successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
 
-        //    try
-        //    {
-        //        int result = await _bl.UpdateGroupBL(model);
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? Userid = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+                if (Userid == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+                model.UpdatedBy = Userid;
+                var result = await _IItemMasterBL.UpdateGroupMaster(model);
 
-        //        if (result <= 0)
-        //        {
-        //            response.message = "Failed to update group";
-        //            response.status = "Error";
-        //            response.statusCode = StatusCodes.Status500InternalServerError;
-        //            response.data = result;
-        //            return Ok(response);
-        //        }
+                if (result.IsSuccess == false)
+                {
+                    response.message = "Failed to update group";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.data = result;
+                    return Ok(response);
+                }
 
-        //        response.data = result;
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        response.message = ex.Message;
-        //        response.exception = ex;
-        //        response.status = "Error";
-        //        response.statusCode = StatusCodes.Status500InternalServerError;
-        //        response.data = 0;
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
 
-        //        return StatusCode(StatusCodes.Status500InternalServerError, response);
-        //    }
-        //}
+        [HttpDelete("DeleteGroupMaster")]
+        public async Task<IActionResult> DeleteGroupMaster(int idGroup)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "group deleted successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "success"
+            };
 
-        //// ✅ Delete Group
-        //[HttpDelete("Delete/{id}")]
-        //public async Task<IActionResult> DeleteGroup(int id)
-        //{
-        //    var response = new GlobalResponseModel<int>
-        //    {
-        //        message = "Group deleted successfully",
-        //        statusCode = StatusCodes.Status200OK,
-        //        status = "Success"
-        //    };
+            try
+            {
+                if (idGroup <= 0)
+                {
+                    response.message = "Invalid group ID";
+                    response.status = "fail";
+                    response.statusCode = StatusCodes.Status400BadRequest;
+                    return BadRequest(response);
+                }
 
-        //    try
-        //    {
-        //        int result = await _bl.DeleteGroupBL(id);
+                var result = await _IItemMasterBL.DeleteGroupMaster(idGroup);
 
-        //        if (result <= 0)
-        //        {
-        //            response.message = "Failed to delete group";
-        //            response.status = "Error";
-        //            response.statusCode = StatusCodes.Status500InternalServerError;
-        //            response.data = result;
-        //            return Ok(response);
-        //        }
+                if (result.IsSuccess == false)
+                {
+                    response.message = "failed to delete group";
+                    response.status = "error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    return Ok(response);
+                }
 
-        //        response.data = result;
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        response.message = ex.Message;
-        //        response.exception = ex;
-        //        response.status = "Error";
-        //        response.statusCode = StatusCodes.Status500InternalServerError;
-        //        response.data = 0;
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
 
-        //        return StatusCode(StatusCodes.Status500InternalServerError, response);
-        //    }
-        //}
+        [HttpGet("GetGroupById")]
+        public async Task<IActionResult> GetGroupById(int idGrop)
+        {
+            var response = new GlobalResponseModel<TblGroupMasterTO>
+            {
+                message = "Group fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
 
-        //// ✅ Get By Id
-        //[HttpGet("GetById/{id}")]
-        //public async Task<IActionResult> GetGroupById(int id)
-        //{
-        //    var response = new GlobalResponseModel<TblGroupMasterTO>
-        //    {
-        //        message = "Group fetched successfully",
-        //        statusCode = StatusCodes.Status200OK,
-        //        status = "Success"
-        //    };
+            try
+            {
+                var data = await _IItemMasterBL.GetGroupById(idGrop);
 
-        //    try
-        //    {
-        //        var data = await _bl.GetGroupByIdBL(id);
+                if (data == null)
+                {
+                    response.message = "Group not found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    return NotFound(response);
+                }
 
-        //        if (data == null)
-        //        {
-        //            response.message = "Group not found";
-        //            response.status = "Fail";
-        //            response.statusCode = StatusCodes.Status404NotFound;
-        //            return NotFound(response);
-        //        }
+                response.data = data;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.data = null;
 
-        //        response.data = data;
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        response.message = ex.Message;
-        //        response.exception = ex;
-        //        response.status = "Error";
-        //        response.statusCode = StatusCodes.Status500InternalServerError;
-        //        response.data = null;
-
-        //        return StatusCode(StatusCodes.Status500InternalServerError, response);
-        //    }
-        //}
-
-      
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
     }
 }
 
