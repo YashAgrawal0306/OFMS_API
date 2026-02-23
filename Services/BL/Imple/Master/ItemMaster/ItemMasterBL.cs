@@ -17,11 +17,14 @@ namespace Services.BL.Imple.Master.ItemMaster
         {
             _itemMasterDAL = itemMasterDAL;
         }
+
+        #region Group Master
         public async Task<ResultMessage> AddGroupMaster(TblGroupMasterTO groupMaster)
         {
             ResultMessage resultMessage = new();
-            int id =await _itemMasterDAL.AddGroupMaster(groupMaster);
-            if (id == 0) { 
+            int id = await _itemMasterDAL.AddGroupMaster(groupMaster);
+            if (id == 0)
+            {
                 resultMessage.Errors.Add("Failed to add group master");
                 resultMessage.IsSuccess = false;
                 resultMessage.Message = "Failed to add group master";
@@ -29,6 +32,11 @@ namespace Services.BL.Imple.Master.ItemMaster
             }
             resultMessage.Data = id;
             return resultMessage;
+        }
+
+        public async Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO)
+        {
+            return await _itemMasterDAL.GetListOfGroupMaster(filterModelTO);
         }
 
         public async Task<ResultMessage> DeleteGroupMaster(int IdGroup)
@@ -65,22 +73,6 @@ namespace Services.BL.Imple.Master.ItemMaster
         {
             return _itemMasterDAL.GetGroupById(idGroup);
         }
-
-        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO)
-        {
-            return await _itemMasterDAL.GetListOfGroupMaster(filterModelTO);
-        }
-
-        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster)
         {
             if (groupMaster == null)
@@ -121,12 +113,88 @@ namespace Services.BL.Imple.Master.ItemMaster
                     Errors = ["No matching record found for the given IdGroupMaster."]
                 };
 
-            return new ResultMessage{
+            return new ResultMessage
+            {
                 IsSuccess = true,
                 Message = "Group master updated successfully.",
                 StatusCode = 200,
                 Data = rowsAffected
             };
         }
+        #endregion
+
+        #region CategoryMaster
+        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
+        {
+            return _itemMasterDAL.GetListOfCategoryMaster(filterModelTO);
+        }
+
+        public async Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
+        {
+            ResultMessage resultMessage = new();
+
+            if (categoryMaster.ParentId == null || categoryMaster.ParentId == 0)
+            {
+                categoryMaster.ParentId = 0; // Category
+            }
+            else
+            {
+                if (categoryMaster.ParentId <= 0)
+                {
+                    resultMessage.IsSuccess = false;
+                    resultMessage.Message = "Invalid parent category";
+                    return resultMessage;
+                }
+            }
+
+            categoryMaster.CreatedAt = DateTime.Now;
+            categoryMaster.IsActive = true;
+
+            int id = await _itemMasterDAL.AddCategoryMaster(categoryMaster);
+
+            if (id > 0)
+            {
+                resultMessage.IsSuccess = true;
+                resultMessage.Message = categoryMaster.ParentId == 0
+                    ? "Category added successfully"
+                    : "Sub-category added successfully";
+                resultMessage.Data = id;
+            }
+            else
+            {
+                resultMessage.IsSuccess = false;
+                resultMessage.Message = categoryMaster.ParentId == 0
+                    ? "Failed to add category"
+                    : "Failed to add sub-category";
+            }
+
+            return resultMessage;
+        }
+
+        public async Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster)
+        {
+            ResultMessage resultMessage = new();
+            int id = await _itemMasterDAL.UpdateCategoryMaster(categoryMaster);
+            return resultMessage;
+        }
+
+        public async Task<ResultMessage> DeleteCategoryMaster(int IdCategory)
+        {
+            ResultMessage resultMessage = new();
+            int id = await _itemMasterDAL.DeleteCategoryMaster(IdCategory);
+            return resultMessage;
+        }
+
+        public async Task<TblCategoryMasterTO> GetCategoryById(int idCategory)
+        {
+            return await _itemMasterDAL.GetCategoryById(idCategory);
+        }
+
+        #endregion
+        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

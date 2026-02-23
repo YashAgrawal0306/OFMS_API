@@ -8,6 +8,7 @@ using Repository.DAL.Interface.Master.ItemMaster;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace Repository.DAL.Imple.Master
             _configuration = configuration;
             _connectionString = _configuration.GetConnectionString("DefaultConnection") ?? "";
         }
-
+        #region Group Master
         public async Task<int> AddGroupMaster(TblGroupMasterTO groupMaster)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -98,10 +99,7 @@ namespace Repository.DAL.Imple.Master
         }
 
 
-        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
-        {
-            throw new NotImplementedException();
-        }
+       
 
         public async Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filter)
         {
@@ -156,11 +154,7 @@ namespace Repository.DAL.Imple.Master
         }
 
 
-        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
-        {
-            throw new NotImplementedException();
-        }
-
+      
         public async Task<int> UpdateGroupMaster(TblGroupMasterTO groupMaster)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -185,6 +179,80 @@ namespace Repository.DAL.Imple.Master
                 groupMaster.IdGroupMaster
             });
             return rowsAffected;
+        }
+        #endregion
+
+
+        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<int> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"INSERT INTO TblCategoryMaster
+                        (
+                            IdGroupMaster,
+                            ParentId,
+                            CategoryName,
+                            CatDescription,
+                            IsActive,
+                            CreatedAt,
+                            CreatedBy
+                        )
+                        VALUES
+                        (
+                            @IdGroupMaster,
+                            @ParentId,
+                            @CategoryName,
+                            @CatDescription,
+                            @IsActive,
+                            @CreatedAt,
+                            @CreatedBy
+                        );
+                        SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+                var result = await conn.ExecuteScalarAsync<int>(query,
+                    new
+                    {
+                        categoryMaster.IdGroupMaster,
+                        ParentId = categoryMaster.ParentId ?? 0,
+                        categoryMaster.CategoryName,
+                        categoryMaster.CatDescription,
+                        categoryMaster.IsActive,
+                        categoryMaster.CreatedAt,
+                        categoryMaster.CreatedBy
+                    }
+                );
+
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public Task<int> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> DeleteCategoryMaster(int idCategory)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<TblCategoryMasterTO> GetCategoryById(int IdCategory)
+        {
+            throw new NotImplementedException();
         }
     }
 }

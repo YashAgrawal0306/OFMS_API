@@ -10,19 +10,22 @@ namespace Services.BL.Interface.Master.ItemMaster
 {
     public interface IItemMasterBL
     {
-        #region Get Methods
-        Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
-        Task<TblGroupMasterTO> GetGroupById(int idGroup);
-        Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
-        Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
-
-
-        #endregion
-        #region Add Methods
+        #region Group Master
         Task<ResultMessage> AddGroupMaster(TblGroupMasterTO groupMaster);
-        #endregion
+        Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
         Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster);
         Task<ResultMessage> DeleteGroupMaster(int IdGroup);
+        Task<TblGroupMasterTO> GetGroupById(int idGroup);
+        #endregion
 
+        #region Category Master
+        Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
+        Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster);
+        Task<ResultMessage> DeleteCategoryMaster(int IdCategory);
+        Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
+
+        #endregion
+        Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
     }
 }
