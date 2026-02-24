@@ -16,19 +16,22 @@ namespace Repository.DAL.Interface.Master.ItemMaster
         Task<TblGroupMasterTO> GetGroupById(int IdGroup);
         Task<int> UpdateGroupMaster(TblGroupMasterTO groupMaster);
         Task<int> DeleteGroupMaster(int idGroup);
+
         #endregion
 
         #region Category Master
-        Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
         Task<int> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<int> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster);
-        Task<int> DeleteCategoryMaster(int idCategory);
         Task<TblCategoryMasterTO> GetCategoryById(int IdCategory);
         #endregion
 
-        Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
+        #region Item Master
+        Task<int> AddItemMaster(TblItemMasterTO model);
+        Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
+        Task<TblItemMasterTO> GetItemMasterById(int id);
+        Task<int> UpdateItemMaster(TblItemMasterTO model);
 
-
-  
+        #endregion
     }
 }

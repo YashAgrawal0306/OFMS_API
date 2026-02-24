@@ -16,6 +16,6 @@
     public class OutPutClass<T> where T : class
     {
         public List<T>? List { get; set; }
-        public int? TotalUser { get; set; }
+        public int? TotalCount { get; set; }
     }
 }

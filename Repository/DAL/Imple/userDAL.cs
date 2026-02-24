@@ -74,7 +74,7 @@ namespace OFMS_API.DAL.Imple
             return new OutPutClass<TblUserTO>
             {
                 List = list.ToList(),
-                TotalUser = total
+                TotalCount = total
             };
         }
 
@@ -150,7 +150,7 @@ namespace OFMS_API.DAL.Imple
                 return new OutPutClass<TblUserTO>
                 {
                     List = list,
-                    TotalUser = total
+                    TotalCount = total
                 };
             }
             catch (Exception)

@@ -209,7 +209,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                     response.message = "Group not found";
                     response.status = "Fail";
                     response.statusCode = StatusCodes.Status404NotFound;
-                    return NotFound(response);
+                    return Ok(response);
                 }
 
                 response.data = data;
@@ -221,7 +221,6 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 response.exception = ex;
                 response.status = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.data = null;
 
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
@@ -287,6 +286,383 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
+
+        [HttpPost("GetCategoryMaster")]
+        public async Task<IActionResult> GetCategoryMaster([FromBody] FilterModelTO filter)
+        {
+            var response = new GlobalResponseModel<List<TblCategoryMasterTO>>
+            {
+                message = "Category fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (filter == null)
+            {
+                response.message = "Invalid filter data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+                var result = await _IItemMasterBL.GetListOfCategoryMaster(filter);
+
+                if (result == null || result.List == null || result.List.Count == 0)
+                {
+                    response.message = "No categories found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    response.data = null;
+                    return Ok(response);
+                }
+                response.TotalRecords = result.TotalCount ?? 0;
+                response.data = result.List.ToList();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpPost("UpdateCategoryMaster")]
+        public async Task<IActionResult> UpdateCategoryMaster([FromBody] TblCategoryMasterTO model)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "Category updated successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (model == null || model.IdCategory <= 0 || string.IsNullOrWhiteSpace(model.CategoryName))
+            {
+                response.message = "Invalid category data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                model.UpdatedBy = Convert.ToInt32(userId);
+                model.UpdatedAt = DateTime.Now;
+
+                var result = await _IItemMasterBL.UpdateCategoryMaster(model);
+
+                if (result.IsSuccess == false)
+                {
+                    response.message = "Failed to update category";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.data = result;
+                    return Ok(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+
+
+        [HttpGet("GetCategoryById")]
+        public async Task<IActionResult> GetCategoryById(int id)
+        {
+            var response = new GlobalResponseModel<TblCategoryMasterTO>
+            {
+                message = "Category fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (id <= 0)
+            {
+                response.message = "Invalid category id";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _IItemMasterBL.GetCategoryById(id);
+
+                if (result == null)
+                {
+                    response.message = "Category not found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+        #endregion
+
+        #region Item Master 
+        [HttpPost("AddItemMaster")]
+        public async Task<IActionResult> AddItemMaster([FromBody] TblItemMasterTO model)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "Item added successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (model == null || string.IsNullOrWhiteSpace(model.ItemName))
+            {
+                response.message = "Invalid item data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                model.CreatedBy = Convert.ToInt32(userId);
+
+                var result = await _IItemMasterBL.AddItemMaster(model);
+
+                if (result.IsSuccess == false)
+                {
+                    response.message = "Failed to add item";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.data = result;
+                    return Ok(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpPost("GetItemMaster")]
+        public async Task<IActionResult> GetItemMaster([FromBody] FilterModelTO filter)
+        {
+            var response = new GlobalResponseModel<List<TblItemMasterTO>>
+            {
+                message = "Items fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _IItemMasterBL.GetListOfItemMaster(filter);
+                response.data = result.List.ToList() ?? new List<TblItemMasterTO>();
+                response.TotalRecords = result.TotalCount;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpGet("GetItemMasterById")]
+        public async Task<IActionResult> GetItemMasterById(int id)
+        {
+            var response = new GlobalResponseModel<TblItemMasterTO>
+            {
+                message = "Item fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (id <= 0)
+            {
+                response.message = "Invalid item id";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _IItemMasterBL.GetItemMasterById(id);
+
+                if (result == null)
+                {
+                    response.message = "Item not found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpPost("UpdateItemMaster")]
+        public async Task<IActionResult> UpdateItemMaster([FromBody] TblItemMasterTO model)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "Item updated successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (model == null || model.IdItemMaster <= 0 || string.IsNullOrWhiteSpace(model.ItemName))
+            {
+                response.message = "Invalid item data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                model.UpdatedBy = Convert.ToInt32(userId);
+                model.UpdatedAt = DateTime.Now;
+
+                var result = await _IItemMasterBL.UpdateItemMaster(model);
+
+                if (result.IsSuccess == false)
+                {
+                    response.message = "Failed to update item";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.data = result;
+                    return Ok(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
         #endregion
     }
 }

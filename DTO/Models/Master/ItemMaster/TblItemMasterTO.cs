@@ -10,6 +10,7 @@ namespace DTO.Models.Master.ItemMaster
     {
         public int IdItemMaster { get; set; }
         public int IdCategory { get; set; }
+        public int IdSubCategory { get; set; }
         public int IdGroupMaster { get; set; }
         public string? ItemName { get; set; }
         public string? ItemDescription { get; set; }

@@ -28,6 +28,7 @@ CREATE TABLE tblCategoryMaster (
 CREATE TABLE tblItemMaster (
     IdItemMaster INT PRIMARY KEY IDENTITY(1,1),
     IdCategory INT NOT NULL,
+    IdSubCategory INT NULL,
     IdGroupMaster INT NOT NULL,
     ItemName NVARCHAR(200) NOT NULL,
     ItemDescription NVARCHAR(500) NULL,
@@ -66,13 +67,15 @@ CREATE TABLE tblItemMasterImage (
 );
 
 
-CREATE TABLE dimImageType (
-    IdImageType INT PRIMARY KEY IDENTITY(1,1),
-    ImageTypeName NVARCHAR(100) NOT NULL, -- Group / Category / Item / SubCategory
-    Description NVARCHAR(250) NOT NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    CreatedBy INT NULL,
-    UpdatedBy INT NULL,
-    UpdatedOn DATETIME NULL 
+CREATE TABLE [dbo].[dimImageType](
+    [IdImageType]   [int]           NOT NULL,          -- Manual fixed ID
+    [ImageType]     [nvarchar](50)  NOT NULL,          -- CAPS key e.g. ITEM, CATEGORY
+    [ImageTypeName] [nvarchar](100) NOT NULL,
+    [Description]   [nvarchar](250) NOT NULL,
+    [IsActive]      [bit]           NOT NULL DEFAULT (1),
+    [CreatedAt]     [datetime]      NOT NULL DEFAULT (GETDATE()),
+    [CreatedBy]     [int]           NULL,
+    [UpdatedBy]     [int]           NULL,
+    [UpdatedOn]     [datetime]      NULL,
+PRIMARY KEY CLUSTERED ([IdImageType] ASC)
 );

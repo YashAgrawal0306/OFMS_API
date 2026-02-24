@@ -181,18 +181,76 @@ namespace Repository.DAL.Imple.Master
             return rowsAffected;
         }
         #endregion
-
-
-        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+         
+        #region Category Master
+        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
         {
-            throw new NotImplementedException();
-        }
+            using var conn = new SqlConnection(_connectionString);
+            var output = new OutPutClass<TblCategoryMasterTO>();
+            try
+            {
+                int pageNo = filterModelTO.PageNo ?? 1;
+                int pageSize = filterModelTO.PageSize ?? 10;
+                string search = filterModelTO.SearchText ?? "";
+                bool isActive = filterModelTO.isActive ?? true;
+                int categoryId = filterModelTO.CategoryId ?? 0;
+                string flag = filterModelTO.Flag ?? "0";
+                bool fetchAll = pageNo == 0 && pageSize == 0;
+                int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
 
-        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
-        {
-            throw new NotImplementedException();
-        }
+                string pagination = fetchAll
+                    ? ""
+                    : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+                 
+                string flagFilter = flag == "1"
+                    ? "AND (ParentId IS NULL OR ParentId = 0)"
+                    : flag == "2"
+                        ? "AND (ParentId IS NOT NULL AND ParentId <> 0)"
+                        : "";
 
+                string query = $@"
+                    SELECT IdCategory,
+                           IdGroupMaster,
+                           ParentId,
+                           CategoryName,
+                           CatDescription,
+                           IsActive,
+                           CreatedAt,
+                           CreatedBy,
+                           UpdatedAt,
+                           UpdatedBy
+                    FROM   TblCategoryMaster
+                    WHERE  IsActive = @IsActive
+                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
+                    AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
+                    {flagFilter}
+                    ORDER  BY IdCategory ASC
+                    {pagination}
+
+                    SELECT COUNT(*)
+                    FROM   TblCategoryMaster
+                    WHERE  IsActive = @IsActive
+                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
+                    AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
+                    {flagFilter};";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IsActive", isActive);
+                parameters.Add("@CategoryId", categoryId);
+                parameters.Add("@SearchText", search);
+                parameters.Add("@Offset", offset);
+                parameters.Add("@PageSize", pageSize);
+
+                var result = await conn.QueryMultipleAsync(query, parameters);
+                output.List = (await result.ReadAsync<TblCategoryMasterTO>()).ToList();
+                output.TotalCount = await result.ReadFirstOrDefaultAsync<int>();
+                return output;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         public async Task<int> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -240,19 +298,239 @@ namespace Repository.DAL.Imple.Master
                 throw;
             }
         }
-        public Task<int> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster)
+        public async Task<int> UpdateCategoryMaster(TblCategoryMasterTO model)
         {
-            throw new NotImplementedException();
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"
+                    UPDATE TblCategoryMaster
+                    SET    IdGroupMaster  = @IdGroupMaster,
+                           ParentId      = @ParentId,
+                           CategoryName  = @CategoryName,
+                           CatDescription = @CatDescription,
+                           IsActive      = @IsActive,
+                           UpdatedAt     = @UpdatedAt,
+                           UpdatedBy     = @UpdatedBy
+                    WHERE  IdCategory    = @IdCategory";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdCategory", model.IdCategory);
+                parameters.Add("@IdGroupMaster", model.IdGroupMaster);
+                parameters.Add("@ParentId", model.ParentId);
+                parameters.Add("@CategoryName", model.CategoryName);
+                parameters.Add("@CatDescription", model.CatDescription);
+                parameters.Add("@IsActive", model.IsActive);
+                parameters.Add("@UpdatedAt", model.UpdatedAt);
+                parameters.Add("@UpdatedBy", model.UpdatedBy);
+
+                int rowsAffected = await conn.ExecuteAsync(query, parameters);
+
+                return rowsAffected;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
-        public Task<int> DeleteCategoryMaster(int idCategory)
+        public async Task<TblCategoryMasterTO> GetCategoryById(int id)
         {
-            throw new NotImplementedException();
-        }
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"
+                    SELECT IdCategory,
+                           IdGroupMaster,
+                           ParentId,
+                           CategoryName,
+                           CatDescription,
+                           IsActive,
+                           CreatedAt,
+                           CreatedBy,
+                           UpdatedAt,
+                           UpdatedBy
+                    FROM   TblCategoryMaster
+                    WHERE  IdCategory = @IdCategory";
 
-        public Task<TblCategoryMasterTO> GetCategoryById(int IdCategory)
-        {
-            throw new NotImplementedException();
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdCategory", id);
+
+                var data = await conn.QueryFirstOrDefaultAsync<TblCategoryMasterTO>(query, parameters);
+                return data ?? new TblCategoryMasterTO();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
+        #endregion
+
+        #region Item Master 
+        public async Task<int> AddItemMaster(TblItemMasterTO model)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"
+                    INSERT INTO tblItemMaster
+                           (IdGroupMaster, IdCategory, IdSubCategory, ItemName, ItemDescription,
+                            Price, Quantity, IsActive, CreatedAt, CreatedBy)
+                    VALUES (@IdGroupMaster, @IdCategory, @IdSubCategory, @ItemName, @ItemDescription,
+                            @Price, @Quantity, @IsActive, GETDATE(), @CreatedBy)";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdGroupMaster", model.IdGroupMaster);
+                parameters.Add("@IdCategory", model.IdCategory);
+                parameters.Add("@IdSubCategory", model.IdSubCategory);
+                parameters.Add("@ItemName", model.ItemName);
+                parameters.Add("@ItemDescription", model.ItemDescription);
+                parameters.Add("@Price", model.Price);
+                parameters.Add("@Quantity", model.Quantity);
+                parameters.Add("@IsActive", model.IsActive);
+                parameters.Add("@CreatedBy", model.CreatedBy);
+
+                return await conn.ExecuteAsync(query, parameters);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        } 
+        public async Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var output = new OutPutClass<TblItemMasterTO>();
+            try
+            {
+                int pageNo = filterModelTO.PageNo ?? 1;
+                int pageSize = filterModelTO.PageSize ?? 10;
+                string search = filterModelTO.SearchText ?? "";
+                bool isActive = filterModelTO.isActive ?? true;
+                int categoryId = filterModelTO.CategoryId ?? 0;
+                bool fetchAll = pageNo == 0 && pageSize == 0;
+                int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
+
+                string pagination = fetchAll
+                    ? ""
+                    : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+                string query = $@"
+                    SELECT IdItemMaster,
+                           IdGroupMaster,
+                           IdCategory,
+                           IdSubCategory,
+                           ItemName,
+                           ItemDescription,
+                           Price,
+                           Quantity,
+                           IsActive,
+                           CreatedAt,
+                           CreatedBy,
+                           UpdatedAt,
+                           UpdatedBy
+                    FROM   tblItemMaster
+                    WHERE  IsActive    = @IsActive
+                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
+                    AND    (@SearchText = '' OR ItemName LIKE '%' + @SearchText + '%')
+                    ORDER  BY IdItemMaster ASC
+                    {pagination}
+
+                    SELECT COUNT(*)
+                    FROM   tblItemMaster
+                    WHERE  IsActive    = @IsActive
+                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
+                    AND    (@SearchText = '' OR ItemName LIKE '%' + @SearchText + '%');";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IsActive", isActive);
+                parameters.Add("@CategoryId", categoryId);
+                parameters.Add("@SearchText", search);
+                parameters.Add("@Offset", offset);
+                parameters.Add("@PageSize", pageSize);
+
+                var result = await conn.QueryMultipleAsync(query, parameters);
+                output.List = (await result.ReadAsync<TblItemMasterTO>()).ToList();
+                output.TotalCount = await result.ReadFirstOrDefaultAsync<int>();
+                return output;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        } 
+        public async Task<TblItemMasterTO> GetItemMasterById(int id)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"
+                    SELECT IdItemMaster,
+                           IdGroupMaster,
+                           IdCategory,
+                           IdSubCategory,
+                           ItemName,
+                           ItemDescription,
+                           Price,
+                           Quantity,
+                           IsActive,
+                           CreatedAt,
+                           CreatedBy,
+                           UpdatedAt,
+                           UpdatedBy
+                    FROM   tblItemMaster
+                    WHERE  IdItemMaster = @IdItemMaster";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdItemMaster", id);
+
+                var data = await conn.QueryFirstOrDefaultAsync<TblItemMasterTO>(query, parameters);
+                return data ?? new TblItemMasterTO();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        } 
+        public async Task<int> UpdateItemMaster(TblItemMasterTO model)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                string query = @"
+                    UPDATE tblItemMaster
+                    SET    IdGroupMaster   = @IdGroupMaster,
+                           IdCategory     = @IdCategory,
+                           IdSubCategory  = @IdSubCategory,
+                           ItemName       = @ItemName,
+                           ItemDescription = @ItemDescription,
+                           Price          = @Price,
+                           Quantity       = @Quantity,
+                           IsActive       = @IsActive,
+                           UpdatedAt      = @UpdatedAt,
+                           UpdatedBy      = @UpdatedBy
+                    WHERE  IdItemMaster   = @IdItemMaster";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IdItemMaster", model.IdItemMaster);
+                parameters.Add("@IdGroupMaster", model.IdGroupMaster);
+                parameters.Add("@IdCategory", model.IdCategory);
+                parameters.Add("@IdSubCategory", model.IdSubCategory);
+                parameters.Add("@ItemName", model.ItemName);
+                parameters.Add("@ItemDescription", model.ItemDescription);
+                parameters.Add("@Price", model.Price);
+                parameters.Add("@Quantity", model.Quantity);
+                parameters.Add("@IsActive", model.IsActive);
+                parameters.Add("@UpdatedAt", model.UpdatedAt);
+                parameters.Add("@UpdatedBy", model.UpdatedBy);
+
+                return await conn.ExecuteAsync(query, parameters);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        #endregion
     }
 }

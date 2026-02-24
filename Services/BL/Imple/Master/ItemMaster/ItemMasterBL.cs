@@ -124,9 +124,9 @@ namespace Services.BL.Imple.Master.ItemMaster
         #endregion
 
         #region CategoryMaster
-        public Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
+        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
         {
-            return _itemMasterDAL.GetListOfCategoryMaster(filterModelTO);
+            return await _itemMasterDAL.GetListOfCategoryMaster(filterModelTO);
         }
 
         public async Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
@@ -175,26 +175,97 @@ namespace Services.BL.Imple.Master.ItemMaster
         {
             ResultMessage resultMessage = new();
             int id = await _itemMasterDAL.UpdateCategoryMaster(categoryMaster);
-            return resultMessage;
-        }
 
-        public async Task<ResultMessage> DeleteCategoryMaster(int IdCategory)
-        {
-            ResultMessage resultMessage = new();
-            int id = await _itemMasterDAL.DeleteCategoryMaster(IdCategory);
-            return resultMessage;
-        }
+            if (id > 0)
+            {
+                resultMessage.IsSuccess = true;
+                resultMessage.Message = "Category updated successfully";
+                resultMessage.StatusCode = 200;
+            }
+            else
+            {
+                resultMessage.IsSuccess = false;
+                resultMessage.Message = "Failed to update category";
+                resultMessage.StatusCode = 500;
+                resultMessage.Errors.Add("No record found to update or update operation failed");
+            }
 
+            return resultMessage;
+        } 
         public async Task<TblCategoryMasterTO> GetCategoryById(int idCategory)
         {
             return await _itemMasterDAL.GetCategoryById(idCategory);
         }
 
         #endregion
-        public Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+
+        #region Item Master 
+        public async Task<ResultMessage> AddItemMaster(TblItemMasterTO model)
         {
-            throw new NotImplementedException();
+            ResultMessage resultMessage = new();
+            int id = await _itemMasterDAL.AddItemMaster(model);
+
+            if (id > 0)
+            {
+                resultMessage.IsSuccess = true;
+                resultMessage.Message = "Item added successfully";
+                resultMessage.StatusCode = 200;
+            }
+            else
+            {
+                resultMessage.IsSuccess = false;
+                resultMessage.Message = "Failed to add item";
+                resultMessage.StatusCode = 500;
+                resultMessage.Errors.Add("Insert operation failed");
+            }
+
+            return resultMessage;
         }
+         
+        public async Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
+        {
+            try
+            {
+                return await _itemMasterDAL.GetListOfItemMaster(filterModelTO);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        } 
+        public async Task<TblItemMasterTO> GetItemMasterById(int id)
+        {
+            try
+            {
+                return await _itemMasterDAL.GetItemMasterById(id);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        } 
+        public async Task<ResultMessage> UpdateItemMaster(TblItemMasterTO model)
+        {
+            ResultMessage resultMessage = new();
+            int id = await _itemMasterDAL.UpdateItemMaster(model);
+
+            if (id > 0)
+            {
+                resultMessage.IsSuccess = true;
+                resultMessage.Message = "Item updated successfully";
+                resultMessage.StatusCode = 200;
+            }
+            else
+            {
+                resultMessage.IsSuccess = false;
+                resultMessage.Message = "Failed to update item";
+                resultMessage.StatusCode = 500;
+                resultMessage.Errors.Add("No record found to update or update operation failed");
+            }
+
+            return resultMessage;
+        }
+        #endregion
 
     }
 }

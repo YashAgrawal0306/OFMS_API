@@ -19,13 +19,18 @@ namespace Services.BL.Interface.Master.ItemMaster
         #endregion
 
         #region Category Master
-        Task<List<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
         Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
-        Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster);
-        Task<ResultMessage> DeleteCategoryMaster(int IdCategory);
+        Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster); 
         Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
 
         #endregion
-        Task<List<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
+
+        #region Item Master
+        Task<ResultMessage> AddItemMaster(TblItemMasterTO model);
+        Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
+        Task<TblItemMasterTO> GetItemMasterById(int id);
+        Task<ResultMessage> UpdateItemMaster(TblItemMasterTO model);
+        #endregion
     }
 }
