@@ -1,5 +1,6 @@
 ﻿using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.ResponseModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace Services.BL.Interface.Master.ItemMaster
     {
         #region Group Master
         Task<ResultMessage> AddGroupMaster(TblGroupMasterTO groupMaster);
-        Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
+        Task<(List<TblGroupMasterResponseTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
         Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster);
         Task<ResultMessage> DeleteGroupMaster(int IdGroup);
         Task<TblGroupMasterTO> GetGroupById(int idGroup);

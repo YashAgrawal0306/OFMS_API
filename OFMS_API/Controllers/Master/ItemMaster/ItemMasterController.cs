@@ -1,5 +1,6 @@
 ﻿using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.ResponseModel;
 using Microsoft.AspNetCore.Mvc;
 using OFMS_API.Models;
 using Services.BL.Interface.Master.ItemMaster;
@@ -21,7 +22,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         [HttpPost("GetAllGroupdMasterList")]
         public async Task<IActionResult> GetGroupdMasterList(FilterModelTO filterModelTO)
         {
-            var response = new GlobalResponseModel<IEnumerable<TblGroupMasterTO>>
+            var response = new GlobalResponseModel<IEnumerable<TblGroupMasterResponseTO>>
             {
                 message = "Groups fetched successfully",
                 statusCode = StatusCodes.Status200OK,
@@ -616,7 +617,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 status = "Success"
             };
 
-            if (model == null || model.IdItemMaster <= 0 || string.IsNullOrWhiteSpace(model.ItemName))
+            if (model == null || model.IdItemMaster <= 0)
             {
                 response.message = "Invalid item data";
                 response.status = "Fail";

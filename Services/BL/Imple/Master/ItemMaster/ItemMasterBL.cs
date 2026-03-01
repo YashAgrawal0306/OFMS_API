@@ -1,21 +1,27 @@
 ﻿using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.ResponseModel;
+using Repository.DAL.Interface.Master.ImageMaster;
 using Repository.DAL.Interface.Master.ItemMaster;
+using Services.BL.Interface.Master.ImageMaster;
 using Services.BL.Interface.Master.ItemMaster;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Helper.Helper.Common.Enums;
 
 namespace Services.BL.Imple.Master.ItemMaster
 {
     public class ItemMasterBL : IItemMasterBL
     {
         private readonly IItemMasterDAL _itemMasterDAL;
-        public ItemMasterBL(IItemMasterDAL itemMasterDAL)
+        private readonly IImageMasterDAL _imageMasterDAL;
+        public ItemMasterBL(IItemMasterDAL itemMasterDAL,IImageMasterDAL imageMasterDAL)
         {
             _itemMasterDAL = itemMasterDAL;
+            _imageMasterDAL = imageMasterDAL;
         }
 
         #region Group Master
@@ -34,9 +40,18 @@ namespace Services.BL.Imple.Master.ItemMaster
             return resultMessage;
         }
 
-        public async Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO)
+        public async Task<(List<TblGroupMasterResponseTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO)
         {
-            return await _itemMasterDAL.GetListOfGroupMaster(filterModelTO);
+            var data = await _itemMasterDAL.GetListOfGroupMaster(filterModelTO);
+            int ImageTypeId = (int)ImageType.GROUP;
+            if (data.Item1 != null && data.Item2 >0)
+            {
+                foreach(var item in data.Item1)
+                {
+                   item.AttachmentTo =await _imageMasterDAL.GetItemMasterImageByReferenceId(item.IdGroupMaster, ImageTypeId);
+                }
+            }
+            return data; 
         }
 
         public async Task<ResultMessage> DeleteGroupMaster(int IdGroup)

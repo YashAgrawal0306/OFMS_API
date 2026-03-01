@@ -1,6 +1,8 @@
-﻿using Dapper;
+﻿using Azure;
+using Dapper;
 using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.ResponseModel;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using OFMS_API.Helper.Common;
@@ -12,8 +14,9 @@ using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Helper.Helper.Common.Enums;
 
-namespace Repository.DAL.Imple.Master
+namespace Repository.DAL.Imple.Master.ItemMaster
 {
     public class ItemMasterDAL : IItemMasterDAL
     {
@@ -99,62 +102,65 @@ namespace Repository.DAL.Imple.Master
         }
 
 
-       
 
-        public async Task<(List<TblGroupMasterTO>, int)> GetListOfGroupMaster(FilterModelTO filter)
+
+        public async Task<(List<TblGroupMasterResponseTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO)
         {
             using var connection = new SqlConnection(_connectionString);
 
-            int pageNo = filter.PageNo ?? 1;
-            int pageSize = filter.PageSize ?? 10;
-            int skip = (pageNo - 1) * pageSize;
+            string sortColumn = filterModelTO.SortColumn ?? "IdGroupMaster";
+            string sortOrder = filterModelTO.SortOrder ?? "ASC";
+             
+            int pageNo = filterModelTO.PageNo ?? 1;
+            int pageSize = filterModelTO.PageSize ?? 10;
 
-            string sortColumn = string.IsNullOrWhiteSpace(filter.SortColumn)
-                ? "CreatedOn"
-                : filter.SortColumn;
+            bool fetchAll = pageNo == 0 && pageSize == 0;
+            int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
 
-            string sortOrder = string.IsNullOrWhiteSpace(filter.SortOrder)
-                ? "DESC"
-                : filter.SortOrder.ToUpper() == "ASC" ? "ASC" : "DESC";
+            string pagination = fetchAll
+                ? ""
+                : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
 
-            var sql = $@"
-                        SELECT  
-                            IdGroupMaster,
-                            GroupName,
-                            Description,
-                            IsActive,
-                            CreatedOn,
-                            CreatedBy,
-                            UpdatedOn,
-                            UpdatedBy
-                        FROM tblGroupMaster
-                        WHERE IsActive = 1
-                        AND (@SearchText IS NULL OR GroupName LIKE '%' + @SearchText + '%')
-                        ORDER BY {sortColumn} {sortOrder}
-                        OFFSET @Skip ROWS
-                        FETCH NEXT @PageSize ROWS ONLY;
+            string query = $@"
+                SELECT  
+                    g.IdGroupMaster,
+                    g.GroupName,
+                    g.Description,
+                    g.IsActive,
+                    g.CreatedOn,
+                    g.CreatedBy,
+                    g.UpdatedOn,
+                    g.UpdatedBy,
+                    cu.username AS CreatedByName,
+                    uu.username AS UpdatedByName
+                FROM tblGroupMaster g
+                LEFT JOIN tblUser cu ON g.CreatedBy = cu.userid
+                LEFT JOIN tblUser uu ON g.UpdatedBy = uu.userid
+                WHERE g.IsActive = 1
+                AND   (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%')
+                ORDER BY g.{sortColumn} {sortOrder}
+                {pagination}
 
-                        SELECT COUNT(*)
-                        FROM tblGroupMaster
-                        WHERE IsActive = 1
-                        AND (@SearchText IS NULL OR GroupName LIKE '%' + @SearchText + '%');
-                    ";
+                SELECT COUNT(*)
+                FROM tblGroupMaster g
+                WHERE g.IsActive = 1
+                AND   (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%');";
+             
+            var parameters = new DynamicParameters();
+            parameters.Add("@SearchText", filterModelTO.SearchText);
+            parameters.Add("@Offset", offset);
+            parameters.Add("@PageSize", pageSize);
 
-            using var multi = await connection.QueryMultipleAsync(sql, new
-            {
-                SearchText = filter.SearchText,
-                Skip = skip,
-                PageSize = pageSize
-            });
-
-            var list = (await multi.ReadAsync<TblGroupMasterTO>()).ToList();
+            using var multi = await connection.QueryMultipleAsync(query, parameters);
+             
+            var list = (await multi.ReadAsync<TblGroupMasterResponseTO>()).ToList();
             var totalCount = await multi.ReadFirstAsync<int>();
 
             return (list, totalCount);
         }
 
 
-      
+
         public async Task<int> UpdateGroupMaster(TblGroupMasterTO groupMaster)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -181,7 +187,7 @@ namespace Repository.DAL.Imple.Master
             return rowsAffected;
         }
         #endregion
-         
+
         #region Category Master
         public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
         {
@@ -201,7 +207,7 @@ namespace Repository.DAL.Imple.Master
                 string pagination = fetchAll
                     ? ""
                     : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
-                 
+
                 string flagFilter = flag == "1"
                     ? "AND (ParentId IS NULL OR ParentId = 0)"
                     : flag == "2"
@@ -396,7 +402,7 @@ namespace Repository.DAL.Imple.Master
             {
                 throw;
             }
-        } 
+        }
         public async Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -458,7 +464,7 @@ namespace Repository.DAL.Imple.Master
             {
                 throw;
             }
-        } 
+        }
         public async Task<TblItemMasterTO> GetItemMasterById(int id)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -491,7 +497,7 @@ namespace Repository.DAL.Imple.Master
             {
                 throw;
             }
-        } 
+        }
         public async Task<int> UpdateItemMaster(TblItemMasterTO model)
         {
             using var conn = new SqlConnection(_connectionString);
