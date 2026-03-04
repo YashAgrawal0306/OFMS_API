@@ -16,7 +16,7 @@ namespace Services.BL.Interface.Master.ItemMaster
         Task<(List<TblGroupMasterResponseTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
         Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster);
         Task<ResultMessage> DeleteGroupMaster(int IdGroup);
-        Task<TblGroupMasterTO> GetGroupById(int idGroup);
+        Task<TblGroupMasterResponseTO> GetGroupById(int idGroup);
         #endregion
 
         #region Category Master
