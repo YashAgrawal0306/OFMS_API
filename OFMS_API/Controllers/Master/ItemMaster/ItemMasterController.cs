@@ -40,7 +40,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
             catch (Exception ex)
             {
-                response.message = ex.Message;
+                response.message =  ex.Message;
                 response.exception = ex;
                 response.status = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
