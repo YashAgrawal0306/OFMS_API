@@ -19,6 +19,10 @@ jobs:
     - name: Stop App Pool
       run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
 
+    - name: Kill Dotnet Process
+      run: taskkill /F /IM dotnet.exe /T
+      continue-on-error: true
+
     - name: Copy Files to IIS
       run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /E /IS /IT /IM
 
