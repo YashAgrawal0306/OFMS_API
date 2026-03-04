@@ -89,7 +89,7 @@ namespace OFMS_API.Controllers.Master.ImageMaster
             if (tblImageMasterRequestTO.ImageUrl == null || tblImageMasterRequestTO.ImageUrl.Length == 0
                 || tblImageMasterRequestTO.ImageTypeId <= 0 || tblImageMasterRequestTO.ReferenceId <= 0)
             {
-                response.message = "Invalid image data";
+                response.message = "Invalid image datda";
                 response.status = "Fail";
                 response.statusCode = StatusCodes.Status400BadRequest;
                 return BadRequest(response);
