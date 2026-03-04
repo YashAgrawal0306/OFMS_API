@@ -16,8 +16,15 @@ jobs:
     - name: Publish
       run: dotnet publish -c Release -o publish
 
-    - name: Copy Files to IIS
-      run: xcopy /E /I /Y publish C:\inetpub\wwwroot\OFMSAPI
+    - name: Stop App Pool
+      run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
 
-    - name: Restart IIS
-      run: iisreset /restart
+    - name: Kill Dotnet Process
+      run: taskkill /F /IM dotnet.exe /T
+      continue-on-error: true
+
+    - name: Copy Files to IIS
+      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /E /IS /IT /IM
+
+    - name: Start App Pool
+      run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
