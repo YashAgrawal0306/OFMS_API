@@ -42,7 +42,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             {
                 response.message = ex.Message;
                 response.exception = ex;
-                response.status = "Error";
+                response.status = "Error addd";
                 response.statusCode = StatusCodes.Status500InternalServerError;
 
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
