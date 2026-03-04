@@ -45,7 +45,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 response.status = "Error addd";
                 response.statusCode = StatusCodes.Status500InternalServerError;
 
-                return StatusCode(StatusCodes.Status500InternalServerError, response);
+                return StatusCode(StatusCodes.Status500InternalServerError, response) ;
             }
         }
         [HttpPost("GetGroupdMasterListNew")]
