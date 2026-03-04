@@ -33,7 +33,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             {
                 var data = await _IItemMasterBL.GetListOfGroupMaster(filterModelTO);
                 response.data = data.Item1;
-                response.TotalRecords = data.Item2
+                response.TotalRecords =  data.Item2;
                 
 
                 return Ok(response);
