@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove=".github\workflows\deploy.yml\**" />
+    <Content Remove=".github\workflows\deploy.yml\**" />
+    <EmbeddedResource Remove=".github\workflows\deploy.yml\**" />
+    <None Remove=".github\workflows\deploy.yml\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
@@ -23,6 +30,10 @@
     <Folder Include="Images\SiteImages\" />
     <Folder Include="Images\UserProfileImages\" />
     <Folder Include="Images\ProductImages\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include=".github\workflows\deploy.yml" />
   </ItemGroup>
 
   <ItemGroup>

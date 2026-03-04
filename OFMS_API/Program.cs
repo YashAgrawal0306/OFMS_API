@@ -116,11 +116,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+ 
 
-app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseRouting();
 // CORS middleware should be placed here
 app.UseCors("AllowAngularApp");
 
@@ -133,6 +134,7 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "swagger";
     });
 }
+app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
