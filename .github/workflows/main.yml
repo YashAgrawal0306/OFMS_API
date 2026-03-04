@@ -16,8 +16,11 @@ jobs:
     - name: Publish
       run: dotnet publish -c Release -o publish
 
+    - name: Stop IIS
+      run: iisreset /stop
+
     - name: Copy Files to IIS
       run: xcopy /E /I /Y publish C:\inetpub\wwwroot\OFMSAPI
 
-    - name: Restart IIS
-      run: iisreset /restart
+    - name: Start IIS
+      run: iisreset /start
