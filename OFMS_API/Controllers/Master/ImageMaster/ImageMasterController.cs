@@ -112,7 +112,44 @@ namespace OFMS_API.Controllers.Master.ImageMaster
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
-         
+
+        [HttpPost("GetItemMasterImageV2")]
+        public async Task<IActionResult> GetItemMasterImageV2([FromBody] FilterModelTO filter)
+        {
+            var response = new GlobalResponseModel<List<tblImageMasterResponseTO>>
+            {
+                message = "Images fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _iImageMasterBL.GetListOfItemMasterImage(filter);
+                response.data = result.ToList();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
         [HttpGet("GetItemMasterImageById/{id}")]
         public async Task<IActionResult> GetItemMasterImageById(int id)
         {
