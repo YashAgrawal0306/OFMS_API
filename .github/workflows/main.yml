@@ -1,45 +1,47 @@
 name: Deploy to IIS
 
 on:
-push:
-branches:
-- production
-pull_request:
-branches:
-- production
-types: [closed]
-workflow_dispatch:
+  push:
+    branches:
+      - production
+  pull_request:
+    branches:
+      - production
+    types: [closed]
+  workflow_dispatch:
 
 jobs:
-build-and-deploy:
-if: github.event_name == 'push' || github.event.pull_request.merged == true
-runs-on: self-hosted
+  build-and-deploy:
+    runs-on: self-hosted
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
-steps:
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-- name: Checkout Repository
-  uses: actions/checkout@v3
+    - name: Restore packages
+      run: dotnet restore
 
-- name: Restore Dependencies
-  run: dotnet restore
+    - name: Build project
+      run: dotnet build --configuration Release --no-restore
 
-- name: Build Project
-  run: dotnet build --configuration Release --no-restore
+    - name: Publish project
+      run: dotnet publish --configuration Release --output publish
 
-- name: Publish Application
-  run: dotnet publish -c Release -o publish
+    - name: Stop IIS App Pool
+      run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
+      continue-on-error: true
 
-- name: Stop IIS App Pool
-  run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
-  continue-on-error: true
+    - name: Kill running dotnet processes
+      run: taskkill /F /IM dotnet.exe /T
+      continue-on-error: true
 
-- name: Kill Running Dotnet Processes
-  run: taskkill /F /IM dotnet.exe /T
-  continue-on-error: true
+    - name: Copy files to IIS
+      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /MIR
+      continue-on-error: true
 
-- name: Deploy Files to IIS
-  run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /MIR
-  continue-on-error: true
-
-- name: Start IIS App Pool
-  run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
+    - name: Start IIS App Pool
+      run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
