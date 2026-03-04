@@ -49,7 +49,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
         [HttpPost("GetAllGroupdMasterListV1")]
-        public async Task<IActionResult> GetGroupdMasterListV2(FilterModelTO filterModelTO)
+        public async Task<IActionResult> GetGroupdMasterListV2q(FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<IEnumerable<TblGroupMasterResponseTO>>
             {
