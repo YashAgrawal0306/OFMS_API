@@ -16,11 +16,11 @@ jobs:
     - name: Publish
       run: dotnet publish -c Release -o publish
 
-    - name: Stop IIS
-      run: iisreset /stop
+    - name: Stop App Pool
+      run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
 
     - name: Copy Files to IIS
-      run: xcopy /E /I /Y publish C:\inetpub\wwwroot\OFMSAPI
+      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /E /IS /IT /IM
 
-    - name: Start IIS
-      run: iisreset /start
+    - name: Start App Pool
+      run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
