@@ -1,32 +1,45 @@
 name: Deploy to IIS
 
 on:
-  push:
-    branches:
-      - production
+push:
+branches:
+- production
+pull_request:
+branches:
+- production
+types: [closed]
+workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    runs-on: self-hosted
+build-and-deploy:
+if: github.event_name == 'push' || github.event.pull_request.merged == true
+runs-on: self-hosted
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+steps:
 
-    - name: Publish
-      run: dotnet publish -c Release -o publish
+- name: Checkout Repository
+  uses: actions/checkout@v3
 
-    - name: Stop App Pool
-      run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
-      continue-on-error: true
+- name: Restore Dependencies
+  run: dotnet restore
 
-    - name: Kill Dotnet Process
-      run: taskkill /F /IM dotnet.exe /T
-      continue-on-error: true
+- name: Build Project
+  run: dotnet build --configuration Release --no-restore
 
-    - name: Copy Files to IIS
-      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /E /IS /IT /IM
-      continue-on-error: true
+- name: Publish Application
+  run: dotnet publish -c Release -o publish
 
-    - name: Start App Pool
-      run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
+- name: Stop IIS App Pool
+  run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
+  continue-on-error: true
+
+- name: Kill Running Dotnet Processes
+  run: taskkill /F /IM dotnet.exe /T
+  continue-on-error: true
+
+- name: Deploy Files to IIS
+  run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /MIR
+  continue-on-error: true
+
+- name: Start IIS App Pool
+  run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
