@@ -223,7 +223,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         [HttpGet("GetGroupById")]
         public async Task<IActionResult> GetGroupById(int idGrop)
         {
-            var response = new GlobalResponseModel<TblGroupMasterTO>
+            var response = new GlobalResponseModel<TblGroupMasterResponseTO>
             {
                 message = "Group fetched successfully",
                 statusCode = StatusCodes.Status200OK,

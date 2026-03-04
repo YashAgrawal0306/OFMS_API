@@ -84,9 +84,24 @@ namespace Services.BL.Imple.Master.ItemMaster
             };
         }
 
-        public Task<TblGroupMasterTO> GetGroupById(int idGroup)
+        public async Task<TblGroupMasterResponseTO> GetGroupById(int idGroup)
         {
-            return _itemMasterDAL.GetGroupById(idGroup);
+            TblGroupMasterResponseTO tblGroupMasterResponseTO = new();
+            var data =await _itemMasterDAL.GetGroupById(idGroup);
+            int ImageTypeId = (int)ImageType.GROUP;
+            if (data != null)
+            {
+                tblGroupMasterResponseTO.UpdatedOn = data.UpdatedOn;
+                tblGroupMasterResponseTO.UpdatedBy = data.UpdatedBy;
+                tblGroupMasterResponseTO.IdGroupMaster = data.IdGroupMaster;
+                tblGroupMasterResponseTO.GroupName = data.GroupName; 
+                tblGroupMasterResponseTO.CreatedBy = data.CreatedBy;
+                tblGroupMasterResponseTO.CreatedOn = data.CreatedOn;
+                tblGroupMasterResponseTO.Description = data.Description;
+                tblGroupMasterResponseTO.IsActive = data.IsActive;
+                tblGroupMasterResponseTO.AttachmentTo = await _imageMasterDAL.GetItemMasterImageByReferenceId(data.IdGroupMaster, ImageTypeId); 
+            }
+            return tblGroupMasterResponseTO;
         }
         public async Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster)
         {
