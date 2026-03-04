@@ -48,8 +48,8 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
-        [HttpPost("GetAllGroupdMasterListV1")]
-        public async Task<IActionResult> GetGroupdMasterListV2q(FilterModelTO filterModelTO)
+        [HttpPost("GetGroupdMasterListNew")]
+        public async Task<IActionResult> GetGroupdMasterListNew(FilterModelTO filterModelTO)
         {
             var response = new GlobalResponseModel<IEnumerable<TblGroupMasterResponseTO>>
             {
