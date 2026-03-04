@@ -48,6 +48,35 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
+        [HttpPost("GetAllGroupdMasterListV1")]
+        public async Task<IActionResult> GetGroupdMasterListV1(FilterModelTO filterModelTO)
+        {
+            var response = new GlobalResponseModel<IEnumerable<TblGroupMasterResponseTO>>
+            {
+                message = "Groups fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var data = await _IItemMasterBL.GetListOfGroupMaster(filterModelTO);
+                response.data = data.Item1;
+                response.TotalRecords = data.Item2;
+
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
 
         [HttpPost("AddGroupMaster")]
         public async Task<IActionResult> AddGroupMaster([FromBody] TblGroupMasterTO model)
