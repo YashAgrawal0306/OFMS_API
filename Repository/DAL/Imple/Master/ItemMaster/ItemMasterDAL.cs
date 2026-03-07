@@ -84,17 +84,23 @@ namespace Repository.DAL.Imple.Master.ItemMaster
         {
             using var connection = new SqlConnection(_connectionString);
 
-            var sql = @"SELECT 
-                    IdGroupMaster,
-                    GroupName,
-                    Description,
-                    IsActive,
-                    CreatedOn,
-                    CreatedBy,
-                    UpdatedOn,
-                    UpdatedBy
-                FROM tblGroupMaster
-                WHERE IsActive = 1
+            var sql = @"
+                        SELECT 
+                    tblGroupMaster.IdGroupMaster,
+                    tblGroupMaster.GroupName,
+                    tblGroupMaster.Description,
+                    tblGroupMaster.IsActive,
+                    tblGroupMaster.CreatedOn,
+                    tblGroupMaster.CreatedBy,
+                    tblGroupMaster.UpdatedOn,
+                    tblGroupMaster.UpdatedBy,
+                    CreatedUser.username AS createdByName,
+                    Updateduser.username AS updatedByName
+                FROM tblGroupMaster tblGroupMaster LEFT JOIN 
+                tbluser CreatedUser on tblGroupMaster.CreatedBy =CreatedUser.userid
+                LEFT JOIN 
+                tbluser Updateduser on tblGroupMaster.UpdatedBy =Updateduser.userid
+                WHERE tblGroupMaster.IsActive = 1
                 AND IdGroupMaster = @Id";
 
             var data = await connection.QueryFirstOrDefaultAsync<TblGroupMasterTO>(sql, new { Id = IdGroup });

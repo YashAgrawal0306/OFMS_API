@@ -99,6 +99,8 @@ namespace Services.BL.Imple.Master.ItemMaster
                 tblGroupMasterResponseTO.CreatedOn = data.CreatedOn;
                 tblGroupMasterResponseTO.Description = data.Description;
                 tblGroupMasterResponseTO.IsActive = data.IsActive;
+                tblGroupMasterResponseTO.CreatedByName = data.CreatedByName;
+                tblGroupMasterResponseTO.UpdatedByName = data.UpdatedByName;
                 tblGroupMasterResponseTO.AttachmentTo = await _imageMasterDAL.GetItemMasterImageByReferenceId(data.IdGroupMaster, ImageTypeId); 
             }
             return tblGroupMasterResponseTO;
