@@ -136,7 +136,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         {
             var response = new GlobalResponseModel<ResultMessage>
             {
-                message = "Group updated successfully",
+                message = "Group Data updated successfully",
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
             };

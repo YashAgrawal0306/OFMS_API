@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - production
+  pull_request:
+    branches:
+      - production
+    types:
+      - closed
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     runs-on: self-hosted
 
     steps:
@@ -37,4 +43,3 @@ jobs:
 
     - name: Start IIS App Pool
       run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
-  
