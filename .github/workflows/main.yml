@@ -4,27 +4,42 @@ on:
   push:
     branches:
       - production
+  pull_request:
+    branches:
+      - production
+    types:
+      - closed
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     runs-on: self-hosted
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Publish
-      run: dotnet publish -c Release -o publish
+    - name: Restore packages
+      run: dotnet restore
 
-    - name: Stop App Pool
+    - name: Build project
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish project
+      run: dotnet publish --configuration Release --output publish
+
+    - name: Stop IIS App Pool
       run: C:\Windows\System32\inetsrv\appcmd stop apppool /apppool.name:"OFMSAPIAppPool"
+      continue-on-error: true
 
-    - name: Kill Dotnet Process
+    - name: Kill running dotnet processes
       run: taskkill /F /IM dotnet.exe /T
       continue-on-error: true
 
-    - name: Copy Files to IIS
-      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /E /IS /IT /IM
+    - name: Copy files to IIS
+      run: robocopy publish C:\inetpub\wwwroot\OFMSAPI /MIR
+      continue-on-error: true
 
-    - name: Start App Pool
+    - name: Start IIS App Pool
       run: C:\Windows\System32\inetsrv\appcmd start apppool /apppool.name:"OFMSAPIAppPool"
