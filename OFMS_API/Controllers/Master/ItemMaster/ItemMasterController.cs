@@ -225,7 +225,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         {
             var response = new GlobalResponseModel<TblGroupMasterResponseTO>
             {
-                message = "Group fetched successfully ",
+                message = "Group fetched successfully",
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
             };
