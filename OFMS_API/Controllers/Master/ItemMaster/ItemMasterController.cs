@@ -182,7 +182,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         {
             var response = new GlobalResponseModel<ResultMessage>
             {
-                message = "group deleted successfully",
+                message = "group deleted successfully.",
                 statusCode = StatusCodes.Status200OK,
                 status = "success"
             };
