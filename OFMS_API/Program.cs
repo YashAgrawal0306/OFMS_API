@@ -6,15 +6,19 @@ using OFMS_API.BL.Interface;
 using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Helper.Register;
+using Repository.DAL.Imple.Master.DropDownItemMaster;
 using Repository.DAL.Imple.Master.ImageMaster;
 using Repository.DAL.Imple.Master.ItemMaster;
+using Repository.DAL.Interface.Master.DropDownItemMaster;
 using Repository.DAL.Interface.Master.ImageMaster;
 using Repository.DAL.Interface.Master.ItemMaster;
 using Serilog;
 using Services.BL.Imple.Master.ImageMaster;
 using Services.BL.Imple.Master.ItemMaster;
+using Services.BL.Imple.Master.ItemMasterDropDownBL;
 using Services.BL.Interface.Master.ImageMaster;
 using Services.BL.Interface.Master.ItemMaster;
+using Services.BL.Interface.Master.ItemMasterDropDownBL;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +47,7 @@ builder.Services.AddScoped<IMenuCategoryDAL, menuCategoryDAL>();
 builder.Services.AddScoped<IOrderDAL, OrderDAL>();
 builder.Services.AddScoped<IItemMasterDAL, ItemMasterDAL>();
 builder.Services.AddScoped<IImageMasterBL, ImageMasterBL>();
+builder.Services.AddScoped<IItemMasterDropDownBL, ItemMasterDropDownBL>();
 
 //bl class
 builder.Services.AddScoped<IuserBL, UserBL>();
@@ -50,6 +55,7 @@ builder.Services.AddScoped<IMenuCategoryBL, MenuCategoryBL>();
 builder.Services.AddScoped<IOrderBL, OrderBL>();
 builder.Services.AddScoped<IItemMasterBL, ItemMasterBL>();
 builder.Services.AddScoped<IImageMasterDAL, ImageMasterDAL>();
+builder.Services.AddScoped<IItemMasterDropDownDAL, ItemMasterDropDownDAL>();
 
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>

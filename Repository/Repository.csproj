@@ -18,9 +18,4 @@
     <ProjectReference Include="..\Helper\Helper.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DAL\Imple\Master\DropDownItemMaster\" />
-    <Folder Include="DAL\Interface\Master\DropDownItemMaster\" />
-  </ItemGroup>
-
 </Project>
