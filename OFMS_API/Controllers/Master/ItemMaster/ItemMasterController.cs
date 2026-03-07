@@ -131,7 +131,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
-        [HttpPut("UpdateGroupMaster")]
+        [HttpPost("UpdateGroupMaster")]
         public async Task<IActionResult> UpdateGroupMaster([FromBody] TblGroupMasterTO model)
         {
             var response = new GlobalResponseModel<ResultMessage>
