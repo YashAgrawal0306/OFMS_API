@@ -149,8 +149,9 @@ namespace Repository.DAL.Imple.Master.ItemMaster
 
                 SELECT COUNT(*)
                 FROM tblGroupMaster g
-                WHERE g.IsActive = 1
-                AND   (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%');";
+                WHERE 
+                --g.IsActive = 1  AND   
+                (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%');";
              
             var parameters = new DynamicParameters();
             parameters.Add("@SearchText", filterModelTO.SearchText);
