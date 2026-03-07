@@ -229,7 +229,7 @@ namespace OFMS_API.Controllers.Master.ImageMaster
             }
         }
          
-        [HttpDelete("DeleteItemMasterImage")]
+        [HttpPost("DeleteItemMasterImage")]
         public async Task<IActionResult> DeleteItemMasterImage(int id)
         {
             var response = new GlobalResponseModel<ResultMessage>

@@ -177,7 +177,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
-        [HttpDelete("DeleteGroupMaster")]
+        [HttpPost("DeleteGroupMaster")]
         public async Task<IActionResult> DeleteGroupMaster(int idGroup)
         {
             var response = new GlobalResponseModel<ResultMessage>
