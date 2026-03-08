@@ -202,6 +202,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             var output = new OutPutClass<TblCategoryMasterTO>();
             try
             {
+
                 int pageNo = filterModelTO.PageNo ?? 1;
                 int pageSize = filterModelTO.PageSize ?? 10;
                 string search = filterModelTO.SearchText ?? "";
@@ -218,22 +219,26 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 string flagFilter = flag == "1"
                     ? "AND (ParentId IS NULL OR ParentId = 0)"
                     : flag == "2"
-                        ? "AND (ParentId IS NOT NULL AND ParentId <> 0)"
+                        ? "AND (ParentId IS NOT NULL OR ParentId <> 0)"
                         : "";
 
                 string query = $@"
-                    SELECT IdCategory,
-                           IdGroupMaster,
-                           ParentId,
-                           CategoryName,
-                           CatDescription,
-                           IsActive,
-                           CreatedAt,
-                           CreatedBy,
-                           UpdatedAt,
-                           UpdatedBy
-                    FROM   TblCategoryMaster
-                    WHERE  IsActive = @IsActive
+                      SELECT IdCategory,
+                             TblCategoryMaster.IdGroupMaster,
+                             TblCategoryMaster.ParentId,
+                             TblCategoryMaster.CategoryName,
+                             TblCategoryMaster.CatDescription,
+                             TblCategoryMaster.IsActive,
+                             TblCategoryMaster.CreatedAt,
+                             TblCategoryMaster.CreatedBy,
+                             TblCategoryMaster.UpdatedAt,
+                             TblCategoryMaster.UpdatedBy,
+                             CreatedByName.username AS CreatedByName,
+                             UpdatedByName.username AS UpdatedByName
+                      FROM   TblCategoryMaster TblCategoryMaster
+                      LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
+                      LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
+                      WHERE  TblCategoryMaster.IsActive = @IsActive
                     AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
                     AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
                     {flagFilter}

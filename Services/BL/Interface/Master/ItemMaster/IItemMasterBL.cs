@@ -21,9 +21,11 @@ namespace Services.BL.Interface.Master.ItemMaster
 
         #region Category Master
         Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO);
         Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster); 
         Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
+        Task<ViewTblCategoryMasterTO> GetCategoryWithSubCatById(int idCategory);
 
         #endregion
 

@@ -158,7 +158,65 @@ namespace Services.BL.Imple.Master.ItemMaster
         #region CategoryMaster
         public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
         {
+
             return await _itemMasterDAL.GetListOfCategoryMaster(filterModelTO);
+        }
+        public async Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO)
+        {
+            var output = new OutPutClass<CategoryWithSubCategoryListTO>();
+             
+            var parentFilter = new FilterModelTO
+            {
+                PageNo = filterModelTO.PageNo,
+                PageSize = filterModelTO.PageSize,
+                SearchText = filterModelTO.SearchText,
+                isActive = filterModelTO.isActive,
+                CategoryId = filterModelTO.CategoryId,
+                Flag = "1"
+            };
+             
+            var subFilter = new FilterModelTO
+            {
+                PageNo = 0,    
+                PageSize = 0,
+                isActive = filterModelTO.isActive,
+                Flag = "2"
+            };
+
+            var parentResult = await _itemMasterDAL.GetListOfCategoryMaster(parentFilter);
+            var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
+             
+            var subGrouped = subResult?.List?
+                .GroupBy(s => s.ParentId ?? 0)
+                .ToDictionary(g => g.Key, g => g.ToList());
+             
+            output.List = parentResult?.List?.Select(parent => new CategoryWithSubCategoryListTO
+            {
+                IdCategory = parent.IdCategory,
+                IdGroupMaster = parent.IdGroupMaster,
+                ParentId = parent.ParentId,
+                CategoryName = parent.CategoryName,
+                CatDescription = parent.CatDescription,
+                IsActive = parent.IsActive,
+                CreatedAt = parent.CreatedAt,
+                CreatedBy = parent.CreatedBy,
+                UpdatedAt = parent.UpdatedAt,
+                UpdatedBy = parent.UpdatedBy,
+
+                SubCategoryList = subGrouped.TryGetValue(parent.IdCategory, out var subs)
+                    ? subs.Select(s => new SubCategoryList
+                    {
+                        IdSubCategory = s.IdCategory,
+                        SubCategoryName = s.CategoryName ?? string.Empty,
+                        SubCategoryDescription = s.CatDescription
+                    }).ToList()
+                    : new List<SubCategoryList>()
+
+            }).ToList();
+
+            output.TotalCount = parentResult?.TotalCount; // total parent count for pagination
+
+            return output;
         }
 
         public async Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
@@ -227,6 +285,53 @@ namespace Services.BL.Imple.Master.ItemMaster
         public async Task<TblCategoryMasterTO> GetCategoryById(int idCategory)
         {
             return await _itemMasterDAL.GetCategoryById(idCategory);
+        }
+        public async Task<ViewTblCategoryMasterTO> GetCategoryWithSubCatById(int idCategory)
+        {
+            // 1️⃣ Fetch the category
+            var data = await _itemMasterDAL.GetCategoryById(idCategory);
+
+            // 2️⃣ Map to ViewTblCategoryMasterTO
+            var result = new ViewTblCategoryMasterTO
+            {
+                IdCategory = data.IdCategory,
+                IdGroupMaster = data.IdGroupMaster,
+                ParentId = data.ParentId,
+                CategoryName = data.CategoryName,
+                CatDescription = data.CatDescription,
+                IsActive = data.IsActive,
+                CreatedAt = data.CreatedAt,
+                CreatedBy = data.CreatedBy,
+                CreatedByName = data.CreatedByName,
+                UpdatedAt = data.UpdatedAt,
+                UpdatedBy = data.UpdatedBy,
+                UpdatedByName= data.UpdatedByName
+            };
+
+            // 3️⃣ Fetch sub-categories only if it's a parent (ParentId is null or 0)
+            bool isParent = data.ParentId == null || data.ParentId == 0;
+            if (isParent)
+            {
+                var subFilter = new FilterModelTO
+                {
+                    PageNo = 0,
+                    PageSize = 0,
+                    isActive = data.IsActive,
+                    CategoryId = data.IdCategory,
+                    Flag = "2"
+                };
+
+                var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
+
+                result.SubCategoryList = subResult?.List.Select(s => new SubCategoryList
+                {
+                    IdSubCategory = s.IdCategory,
+                    SubCategoryName = s.CategoryName ?? string.Empty,
+                    SubCategoryDescription = s.CatDescription ?? string.Empty
+                }).ToList();
+            }
+
+            return result;
         }
 
         #endregion
