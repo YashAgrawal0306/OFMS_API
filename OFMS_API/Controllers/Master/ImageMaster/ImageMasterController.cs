@@ -75,7 +75,7 @@ namespace OFMS_API.Controllers.Master.ImageMaster
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
-         
+
         [HttpPost("GetItemMasterImage")]
         public async Task<IActionResult> GetItemMasterImage([FromBody] FilterModelTO filter)
         {
@@ -112,7 +112,9 @@ namespace OFMS_API.Controllers.Master.ImageMaster
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
-         
+
+     
+
         [HttpGet("GetItemMasterImageById/{id}")]
         public async Task<IActionResult> GetItemMasterImageById(int id)
         {
@@ -227,7 +229,7 @@ namespace OFMS_API.Controllers.Master.ImageMaster
             }
         }
          
-        [HttpDelete("DeleteItemMasterImage/{id}")]
+        [HttpPost("DeleteItemMasterImage")]
         public async Task<IActionResult> DeleteItemMasterImage(int id)
         {
             var response = new GlobalResponseModel<ResultMessage>

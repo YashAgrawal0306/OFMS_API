@@ -145,7 +145,7 @@ namespace Repository.DAL.Imple.Master.ImageMaster
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@ReferenceId", IdReference);
-                parameters.Add("@ImageTypeId", IdReference);
+                parameters.Add("@ImageTypeId", ImageTypeId);
 
                 var data = await conn.QueryAsync<AttachmentListTO>(query, parameters);
                 return data.ToList();
