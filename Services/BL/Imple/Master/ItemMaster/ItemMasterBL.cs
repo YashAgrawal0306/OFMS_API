@@ -279,7 +279,7 @@ namespace Services.BL.Imple.Master.ItemMaster
                 resultMessage.IsSuccess = false;
                 resultMessage.Message = "Failed to update category";
                 resultMessage.StatusCode = 500;
-                resultMessage.Errors.Add("No record found to update or update operation failed");
+                resultMessage.Errors.Add("No record found t o update or update operation failed");
             }
 
             return resultMessage;
