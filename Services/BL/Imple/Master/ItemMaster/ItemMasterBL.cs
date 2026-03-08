@@ -208,7 +208,8 @@ namespace Services.BL.Imple.Master.ItemMaster
                 {
                     IdSubCategory = s.IdCategory,
                     SubCategoryName = s.CategoryName ?? string.Empty,
-                    SubCategoryDescription = s.CatDescription ?? string.Empty
+                    SubCategoryDescription = s.CatDescription ?? string.Empty,
+                    IsActive = s.IsActive
                 }).ToList()
                 : new List<SubCategoryList>(),
                 totalSubCount = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subCount) ? subCount.Count  : 0,
@@ -324,12 +325,19 @@ namespace Services.BL.Imple.Master.ItemMaster
 
                 var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
 
-                result.SubCategoryList = subResult?.List.Select(s => new SubCategoryList
+                var subList = subResult?.List ?? new List<TblCategoryMasterTO>();
+
+                result.SubCategoryList = subList.Select(s => new SubCategoryList
                 {
                     IdSubCategory = s.IdCategory,
                     SubCategoryName = s.CategoryName ?? string.Empty,
-                    SubCategoryDescription = s.CatDescription ?? string.Empty
+                    SubCategoryDescription = s.CatDescription ?? string.Empty,
+                    IsActive = s.IsActive
                 }).ToList();
+
+                result.TotalSubCategoryCount = subList.Count;
+                result.TotalActiveSubCategory = subList.Count(s => s.IsActive);
+                result.TotalInActiveSubCategory = subList.Count(s => !s.IsActive);
             }
 
             return result;

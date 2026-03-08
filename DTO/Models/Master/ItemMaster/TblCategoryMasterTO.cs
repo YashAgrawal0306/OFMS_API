@@ -37,6 +37,9 @@ namespace DTO.Models.Master.ItemMaster
         public DateTime? UpdatedAt { get; set; }
         public string? UpdatedByName { get; set; }
         public int? UpdatedBy { get; set; }
+        public int? TotalSubCategoryCount { get; set; }
+        public int? TotalActiveSubCategory {  get; set; }
+        public int? TotalInActiveSubCategory { get; set; }
         public List<SubCategoryList>? SubCategoryList{ get; set; }
     }
 
@@ -61,5 +64,6 @@ namespace DTO.Models.Master.ItemMaster
         public int IdSubCategory { get; set; }
         public string? SubCategoryName { get; set; }
         public string? SubCategoryDescription { get; set; }
+        public bool? IsActive { get; set; }
     }
 }
