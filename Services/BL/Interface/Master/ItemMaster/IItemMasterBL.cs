@@ -16,14 +16,16 @@ namespace Services.BL.Interface.Master.ItemMaster
         Task<(List<TblGroupMasterResponseTO>, int)> GetListOfGroupMaster(FilterModelTO filterModelTO);
         Task<ResultMessage> UpdateGroupMaster(TblGroupMasterTO groupMaster);
         Task<ResultMessage> DeleteGroupMaster(int IdGroup);
-        Task<TblGroupMasterTO> GetGroupById(int idGroup);
+        Task<TblGroupMasterResponseTO> GetGroupById(int idGroup);
         #endregion
 
         #region Category Master
         Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO);
         Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster); 
         Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
+        Task<ViewTblCategoryMasterTO> GetCategoryWithSubCatById(int idCategory);
 
         #endregion
 
