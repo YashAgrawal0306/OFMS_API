@@ -42,6 +42,35 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             {
                 response.message =  ex.Message;
                 response.exception = ex;
+                response.status = "Error addd";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+
+                return StatusCode(StatusCodes.Status500InternalServerError, response) ;
+            }
+        }
+        [HttpPost("GetGroupdMasterListNew")]
+        public async Task<IActionResult> GetGroupdMasterListNew(FilterModelTO filterModelTO)
+        {
+            var response = new GlobalResponseModel<IEnumerable<TblGroupMasterResponseTO>>
+            {
+                message = "Groups fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var data = await _IItemMasterBL.GetListOfGroupMaster(filterModelTO);
+                response.data = data.Item1;
+                response.TotalRecords = data.Item2;
+
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
                 response.status = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
 
@@ -102,12 +131,12 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
-        [HttpPut("UpdateGroupMaster")]
+        [HttpPost("UpdateGroupMaster")]
         public async Task<IActionResult> UpdateGroupMaster([FromBody] TblGroupMasterTO model)
         {
             var response = new GlobalResponseModel<ResultMessage>
             {
-                message = "Group updated successfully",
+                message = "Group Data updated successfully",
                 statusCode = StatusCodes.Status200OK,
                 status = "Success"
             };
@@ -148,12 +177,12 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
-        [HttpDelete("DeleteGroupMaster")]
+        [HttpPost("DeleteGroupMaster")]
         public async Task<IActionResult> DeleteGroupMaster(int idGroup)
         {
             var response = new GlobalResponseModel<ResultMessage>
             {
-                message = "group deleted successfully",
+                message = "group deleted successfully.",
                 statusCode = StatusCodes.Status200OK,
                 status = "success"
             };
@@ -194,7 +223,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
         [HttpGet("GetGroupById")]
         public async Task<IActionResult> GetGroupById(int idGrop)
         {
-            var response = new GlobalResponseModel<TblGroupMasterTO>
+            var response = new GlobalResponseModel<TblGroupMasterResponseTO>
             {
                 message = "Group fetched successfully",
                 statusCode = StatusCodes.Status200OK,
@@ -342,6 +371,61 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
+
+        [HttpPost("GetCategoryWithSubCategoryList")]
+        public async Task<IActionResult> GetCategoryWithSubCategoryList([FromBody] FilterModelTO filter)
+        {
+            var response = new GlobalResponseModel<List<CategoryWithSubCategoryListTO>>
+            {
+                message = "Category fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (filter == null)
+            {
+                response.message = "Invalid filter data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+                var result = await _IItemMasterBL.GetCategoryWithSubCategoryList(filter);
+
+                if (result == null || result.List == null || result.List.Count == 0)
+                {
+                    response.message = "No categories found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    response.data = null;
+                    return Ok(response);
+                }
+                response.TotalRecords = result.TotalCount ?? 0;
+                response.data = result.List.ToList();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
         [HttpPost("UpdateCategoryMaster")]
         public async Task<IActionResult> UpdateCategoryMaster([FromBody] TblCategoryMasterTO model)
         {
@@ -434,6 +518,60 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 }
 
                 var result = await _IItemMasterBL.GetCategoryById(id);
+
+                if (result == null)
+                {
+                    response.message = "Category not found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpGet("GetCategoryWithSubCatById")]
+        public async Task<IActionResult> GetCategoryWithSubCatById(int id)
+        {
+            var response = new GlobalResponseModel<ViewTblCategoryMasterTO>
+            {
+                message = "Category fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (id <= 0)
+            {
+                response.message = "Invalid category id";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _IItemMasterBL.GetCategoryWithSubCatById(id);
 
                 if (result == null)
                 {

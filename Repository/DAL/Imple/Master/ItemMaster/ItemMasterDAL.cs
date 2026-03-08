@@ -84,17 +84,23 @@ namespace Repository.DAL.Imple.Master.ItemMaster
         {
             using var connection = new SqlConnection(_connectionString);
 
-            var sql = @"SELECT 
-                    IdGroupMaster,
-                    GroupName,
-                    Description,
-                    IsActive,
-                    CreatedOn,
-                    CreatedBy,
-                    UpdatedOn,
-                    UpdatedBy
-                FROM tblGroupMaster
-                WHERE IsActive = 1
+            var sql = @"
+                        SELECT 
+                    tblGroupMaster.IdGroupMaster,
+                    tblGroupMaster.GroupName,
+                    tblGroupMaster.Description,
+                    tblGroupMaster.IsActive,
+                    tblGroupMaster.CreatedOn,
+                    tblGroupMaster.CreatedBy,
+                    tblGroupMaster.UpdatedOn,
+                    tblGroupMaster.UpdatedBy,
+                    CreatedUser.username AS createdByName,
+                    Updateduser.username AS updatedByName
+                FROM tblGroupMaster tblGroupMaster LEFT JOIN 
+                tbluser CreatedUser on tblGroupMaster.CreatedBy =CreatedUser.userid
+                LEFT JOIN 
+                tbluser Updateduser on tblGroupMaster.UpdatedBy =Updateduser.userid
+                WHERE tblGroupMaster.IsActive = 1
                 AND IdGroupMaster = @Id";
 
             var data = await connection.QueryFirstOrDefaultAsync<TblGroupMasterTO>(sql, new { Id = IdGroup });
@@ -143,8 +149,9 @@ namespace Repository.DAL.Imple.Master.ItemMaster
 
                 SELECT COUNT(*)
                 FROM tblGroupMaster g
-                WHERE g.IsActive = 1
-                AND   (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%');";
+                WHERE 
+                --g.IsActive = 1  AND   
+                (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%');";
              
             var parameters = new DynamicParameters();
             parameters.Add("@SearchText", filterModelTO.SearchText);
@@ -195,6 +202,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             var output = new OutPutClass<TblCategoryMasterTO>();
             try
             {
+
                 int pageNo = filterModelTO.PageNo ?? 1;
                 int pageSize = filterModelTO.PageSize ?? 10;
                 string search = filterModelTO.SearchText ?? "";
@@ -211,22 +219,28 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 string flagFilter = flag == "1"
                     ? "AND (ParentId IS NULL OR ParentId = 0)"
                     : flag == "2"
-                        ? "AND (ParentId IS NOT NULL AND ParentId <> 0)"
+                        ? "AND (ParentId IS NOT NULL OR ParentId <> 0)"
                         : "";
 
                 string query = $@"
-                    SELECT IdCategory,
-                           IdGroupMaster,
-                           ParentId,
-                           CategoryName,
-                           CatDescription,
-                           IsActive,
-                           CreatedAt,
-                           CreatedBy,
-                           UpdatedAt,
-                           UpdatedBy
-                    FROM   TblCategoryMaster
-                    WHERE  IsActive = @IsActive
+                      SELECT IdCategory,
+                             TblCategoryMaster.IdGroupMaster,
+                             TblCategoryMaster.ParentId,
+                             TblCategoryMaster.CategoryName,
+                             TblCategoryMaster.CatDescription,
+                             TblCategoryMaster.IsActive,
+                             TblCategoryMaster.CreatedAt,
+                             TblCategoryMaster.CreatedBy,
+                             TblCategoryMaster.UpdatedAt,
+                             TblCategoryMaster.UpdatedBy,
+                             CreatedByName.username AS CreatedByName,
+                             UpdatedByName.username AS UpdatedByName,
+                             tblGroupMaster.GroupName AS GroupName
+                      FROM   TblCategoryMaster TblCategoryMaster
+                      LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
+                      LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
+                     LEFT JOIN tblGroupMaster tblGroupMaster ON tblGroupMaster.idGroupMaster = TblCategoryMaster.IdGroupMaster
+                      WHERE  TblCategoryMaster.IsActive = @IsActive
                     AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
                     AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
                     {flagFilter}
@@ -347,17 +361,23 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             {
                 string query = @"
                     SELECT IdCategory,
-                           IdGroupMaster,
-                           ParentId,
-                           CategoryName,
-                           CatDescription,
-                           IsActive,
-                           CreatedAt,
-                           CreatedBy,
-                           UpdatedAt,
-                           UpdatedBy
-                    FROM   TblCategoryMaster
-                    WHERE  IdCategory = @IdCategory";
+                     TblCategoryMaster.IdGroupMaster,
+                     TblCategoryMaster.ParentId,
+                     TblCategoryMaster.CategoryName,
+                     TblCategoryMaster.CatDescription,
+                     TblCategoryMaster.IsActive,
+                     TblCategoryMaster.CreatedAt,
+                     TblCategoryMaster.CreatedBy,
+                     TblCategoryMaster.UpdatedAt,
+                     TblCategoryMaster.UpdatedBy,
+                     CreatedByName.username AS CreatedByName,
+                     UpdatedByName.username AS UpdatedByName,
+                     tblGroupMaster.GroupName AS GroupName
+              FROM   TblCategoryMaster TblCategoryMaster
+              LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
+              LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
+              LEFT JOIN tblGroupMaster tblGroupMaster ON tblGroupMaster.IdGroupMaster = tblCategoryMaster.IdGroupMaster
+             WHERE  IdCategory = @IdCategory";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@IdCategory", id);

@@ -16,5 +16,7 @@ namespace DTO.Models.Master.ItemMaster
         public int CreatedBy { get; set; }
         public DateTime? UpdatedOn { get; set; }
         public int? UpdatedBy { get; set; }
+        public string? UpdatedByName { get; set; }
+        public string? CreatedByName {  get; set; }
     }
 }
