@@ -234,10 +234,12 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                              TblCategoryMaster.UpdatedAt,
                              TblCategoryMaster.UpdatedBy,
                              CreatedByName.username AS CreatedByName,
-                             UpdatedByName.username AS UpdatedByName
+                             UpdatedByName.username AS UpdatedByName,
+                             tblGroupMaster.GroupName AS GroupName
                       FROM   TblCategoryMaster TblCategoryMaster
                       LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
                       LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
+                     LEFT JOIN tblGroupMaster tblGroupMaster ON tblGroupMaster.idGroupMaster = TblCategoryMaster.IdGroupMaster
                       WHERE  TblCategoryMaster.IsActive = @IsActive
                     AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
                     AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')

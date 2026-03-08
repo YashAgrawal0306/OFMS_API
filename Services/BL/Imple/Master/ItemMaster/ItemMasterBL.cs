@@ -202,20 +202,21 @@ namespace Services.BL.Imple.Master.ItemMaster
                 CreatedBy = parent.CreatedBy,
                 UpdatedAt = parent.UpdatedAt,
                 UpdatedBy = parent.UpdatedBy,
-
-                SubCategoryList = subGrouped.TryGetValue(parent.IdCategory, out var subs)
-                    ? subs.Select(s => new SubCategoryList
-                    {
-                        IdSubCategory = s.IdCategory,
-                        SubCategoryName = s.CategoryName ?? string.Empty,
-                        SubCategoryDescription = s.CatDescription
-                    }).ToList()
-                    : new List<SubCategoryList>()
+                GroupName =parent.GroupName,
+                SubCategoryList = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subs)
+                ? subs.Select(s => new SubCategoryList
+                {
+                    IdSubCategory = s.IdCategory,
+                    SubCategoryName = s.CategoryName ?? string.Empty,
+                    SubCategoryDescription = s.CatDescription ?? string.Empty
+                }).ToList()
+                : new List<SubCategoryList>(),
+                totalSubCount = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subCount) ? subCount.Count  : 0,
 
             }).ToList();
 
             output.TotalCount = parentResult?.TotalCount; // total parent count for pagination
-
+            
             return output;
         }
 

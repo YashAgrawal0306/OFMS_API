@@ -20,6 +20,7 @@ namespace DTO.Models.Master.ItemMaster
         public string? CreatedByName {  get; set; }
         public string? UpdatedByName {  get; set; }
         public int? UpdatedBy { get; set; }
+        public string? GroupName { get; set; }
     }
 
     public class ViewTblCategoryMasterTO
@@ -51,6 +52,8 @@ namespace DTO.Models.Master.ItemMaster
         public int? CreatedBy { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+        public int? totalSubCount { get; set; }
+        public string? GroupName { get; set; }
         public List<SubCategoryList>? SubCategoryList { get; set; }
     }
     public class SubCategoryList
