@@ -215,19 +215,25 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                         : "";
 
                 string query = $@"
-                    SELECT IdCategory,
-                           IdGroupMaster,
-                           ParentId,
-                           CategoryName,
-                           CatDescription,
-                           IsActive,
-                           CreatedAt,
-                           CreatedBy,
-                           UpdatedAt,
-                           UpdatedBy
-                    FROM   TblCategoryMaster
-                    WHERE  IsActive = @IsActive
-                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
+                      SELECT IdCategory,
+                             TblCategoryMaster.IdGroupMaster,
+                             TblCategoryMaster.ParentId,
+                             TblCategoryMaster.CategoryName,
+                             TblCategoryMaster.CatDescription,
+                             TblCategoryMaster.IsActive,
+                             TblCategoryMaster.CreatedAt,
+                             TblCategoryMaster.CreatedBy,
+                             TblCategoryMaster.UpdatedAt,
+                             TblCategoryMaster.UpdatedBy,
+                             CreatedByName.username AS CreatedByName,
+                             UpdatedByName.username AS UpdatedByName,
+                             tblGroupMaster.GroupName AS GroupName
+                      FROM   TblCategoryMaster TblCategoryMaster
+                      LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
+                      LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
+                     LEFT JOIN tblGroupMaster tblGroupMaster ON tblGroupMaster.idGroupMaster = TblCategoryMaster.IdGroupMaster
+                      WHERE  TblCategoryMaster.IsActive = @IsActive
+                    AND    (@CategoryId = 0 OR ParentId = @CategoryId)
                     AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
                     {flagFilter}
                     ORDER  BY IdCategory ASC
