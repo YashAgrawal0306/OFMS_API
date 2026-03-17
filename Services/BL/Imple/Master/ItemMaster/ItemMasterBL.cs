@@ -343,6 +343,58 @@ namespace Services.BL.Imple.Master.ItemMaster
             return result;
         }
 
+        public async Task<ViewTblSubCategoryWithItemsTO> GetSubCategoryWithItemsById(int idSubCategory)
+        {
+            // 1️⃣ Fetch the subcategory (reuse same GetCategoryById from DAL)
+            var data = await _itemMasterDAL.GetCategoryById(idSubCategory);
+
+            // 2️⃣ Map to ViewTblSubCategoryWithItemsTO
+            var result = new ViewTblSubCategoryWithItemsTO
+            {
+                IdSubCategory = data.IdCategory,
+                IdGroupMaster = data.IdGroupMaster,
+                ParentId = data.ParentId,
+                SubCategoryName = data.CategoryName,
+                SubCategoryDescription = data.CatDescription,
+                IsActive = data.IsActive,
+                CreatedAt = data.CreatedAt,
+                CreatedBy = data.CreatedBy,
+                CreatedByName = data.CreatedByName,
+                UpdatedAt = data.UpdatedAt,
+                UpdatedBy = data.UpdatedBy,
+                UpdatedByName = data.UpdatedByName
+            };
+
+            // 3️⃣ Fetch items for this subcategory
+            var itemFilter = new FilterModelTO
+            {
+                PageNo = 0,
+                PageSize = 0,
+                isActive = data.IsActive,
+                CategoryId = data.IdCategory,
+                Flag = "0"
+            };
+
+            var itemResult = await _itemMasterDAL.GetItemsBySubCategoryId(itemFilter);
+            var itemList = itemResult?.List ?? new List<TblItemMasterTO>();
+
+            // 4️⃣ Map to ItemList and set summary counts
+            result.ItemList = itemList.Select(i => new ItemList
+            {
+                IdItemMaster = i.IdItemMaster,
+                ItemName = i.ItemName ?? string.Empty,
+                ItemDescription = i.ItemDescription ?? string.Empty,
+                Price = i.Price,
+                Quantity = i.Quantity,
+                IsActive = i.IsActive
+            }).ToList();
+
+            result.TotalItemCount = itemList.Count;
+            result.TotalActiveItem = itemList.Count(i => i.IsActive);
+            result.TotalInActiveItem = itemList.Count(i => !i.IsActive);
+
+            return result;
+        }
         #endregion
 
         #region Item Master 

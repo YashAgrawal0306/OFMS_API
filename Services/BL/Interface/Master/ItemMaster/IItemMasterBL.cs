@@ -26,6 +26,7 @@ namespace Services.BL.Interface.Master.ItemMaster
         Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster); 
         Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
         Task<ViewTblCategoryMasterTO> GetCategoryWithSubCatById(int idCategory);
+        Task<ViewTblSubCategoryWithItemsTO> GetSubCategoryWithItemsById(int idSubCategory);
 
         #endregion
 

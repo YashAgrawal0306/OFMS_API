@@ -201,8 +201,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             using var conn = new SqlConnection(_connectionString);
             var output = new OutPutClass<TblCategoryMasterTO>();
             try
-            {
-
+            { 
                 int pageNo = filterModelTO.PageNo ?? 1;
                 int pageSize = filterModelTO.PageSize ?? 10;
                 string search = filterModelTO.SearchText ?? "";
@@ -417,6 +416,69 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 parameters.Add("@CreatedBy", model.CreatedBy);
 
                 return await conn.ExecuteAsync(query, parameters);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<OutPutClass<TblItemMasterTO>> GetItemsBySubCategoryId(FilterModelTO filterModelTO)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var output = new OutPutClass<TblItemMasterTO>();
+            try
+            {
+                int pageNo = filterModelTO.PageNo ?? 1;
+                int pageSize = filterModelTO.PageSize ?? 10;
+                string search = filterModelTO.SearchText ?? "";
+                bool isActive = filterModelTO.isActive ?? true;
+                int subCategoryId = filterModelTO.CategoryId ?? 0;  
+
+                bool fetchAll = pageNo == 0 && pageSize == 0;
+                int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
+                string pagination = fetchAll
+                    ? ""
+                    : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+                string query = $@"
+            SELECT  IdItemMaster,
+                    IdGroupMaster,
+                    IdCategory,
+                    IdSubCategory,
+                    ItemName,
+                    ItemDescription,
+                    Price,
+                    Quantity,
+                    IsActive,
+                    CreatedAt,
+                    CreatedBy,
+                    UpdatedAt,
+                    UpdatedBy
+            FROM    tblItemMaster
+            WHERE   IsActive         = @IsActive
+            AND     (@SubCategoryId  = 0 OR IdSubCategory = @SubCategoryId)
+            AND     (@SearchText     = '' OR ItemName LIKE '%' + @SearchText + '%')
+            ORDER BY IdItemMaster ASC
+            {pagination}
+
+            SELECT COUNT(*)
+            FROM   tblItemMaster
+            WHERE  IsActive         = @IsActive
+            AND    (@SubCategoryId  = 0 OR IdSubCategory = @SubCategoryId)
+            AND    (@SearchText     = '' OR ItemName LIKE '%' + @SearchText + '%');";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@IsActive", isActive);
+                parameters.Add("@SubCategoryId", subCategoryId); // ✅ Pass CategoryId value
+                parameters.Add("@SearchText", search);
+                parameters.Add("@Offset", offset);
+                parameters.Add("@PageSize", pageSize);
+
+                var result = await conn.QueryMultipleAsync(query, parameters);
+                output.List = (await result.ReadAsync<TblItemMasterTO>()).ToList();
+                output.TotalCount = await result.ReadFirstOrDefaultAsync<int>();
+                return output;
             }
             catch (Exception)
             {

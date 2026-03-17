@@ -22,6 +22,7 @@ namespace Repository.DAL.Interface.Master.ItemMaster
 
         #region Category Master
         Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
+        Task<OutPutClass<TblItemMasterTO>> GetItemsBySubCategoryId(FilterModelTO filterModelTO);
         Task<int> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<int> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<TblCategoryMasterTO> GetCategoryById(int IdCategory);

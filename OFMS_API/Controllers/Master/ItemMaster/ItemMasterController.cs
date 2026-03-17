@@ -691,6 +691,60 @@ namespace OFMS_API.Controllers.Master.ItemMaster
             }
         }
 
+        [HttpGet("GetSubCategoryWithItemsById")]
+        public async Task<IActionResult> GetSubCategoryWithItemsById(int id)
+        {
+            var response = new GlobalResponseModel<ViewTblSubCategoryWithItemsTO>
+            {
+                message = "SubCategory with items fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (id <= 0)
+            {
+                response.message = "Invalid subcategory id";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+
+                var result = await _IItemMasterBL.GetSubCategoryWithItemsById(id);
+
+                if (result == null)
+                {
+                    response.message = "SubCategory not found";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status404NotFound;
+                    return NotFound(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
         [HttpGet("GetItemMasterById")]
         public async Task<IActionResult> GetItemMasterById(int id)
         {
