@@ -164,63 +164,137 @@ namespace Services.BL.Imple.Master.ItemMaster
         public async Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO)
         {
             var output = new OutPutClass<CategoryWithSubCategoryListTO>();
-             
-            var parentFilter = new FilterModelTO
-            {
-                PageNo = filterModelTO.PageNo,
-                PageSize = filterModelTO.PageSize,
-                SearchText = filterModelTO.SearchText,
-                isActive = filterModelTO.isActive,
-                CategoryId = filterModelTO.CategoryId,
-                Flag = "1"
-            };
-             
-            var subFilter = new FilterModelTO
-            {
-                PageNo = 0,    
-                PageSize = 0,
-                isActive = filterModelTO.isActive,
-                Flag = "2"
-            };
+            string flag = filterModelTO.Flag ?? "1";
 
-            var parentResult = await _itemMasterDAL.GetListOfCategoryMaster(parentFilter);
-            var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
-             
-            var subGrouped = subResult?.List?
-                .GroupBy(s => s.ParentId ?? 0)
-                .ToDictionary(g => g.Key, g => g.ToList());
-             
-            output.List = parentResult?.List?.Select(parent => new CategoryWithSubCategoryListTO
+            // ─────────────────────────────────────────
+            // FLAG = "1" → Category + SubCategory List
+            // ─────────────────────────────────────────
+            if (flag == "1")
             {
-                IdCategory = parent.IdCategory,
-                IdGroupMaster = parent.IdGroupMaster,
-                ParentId = parent.ParentId,
-                CategoryName = parent.CategoryName,
-                CatDescription = parent.CatDescription,
-                IsActive = parent.IsActive,
-                CreatedAt = parent.CreatedAt,
-                CreatedBy = parent.CreatedBy,
-                UpdatedAt = parent.UpdatedAt,
-                UpdatedBy = parent.UpdatedBy,
-                GroupName =parent.GroupName,
-                SubCategoryList = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subs)
-                ? subs.Select(s => new SubCategoryList
+                var parentFilter = new FilterModelTO
                 {
-                    IdSubCategory = s.IdCategory,
-                    SubCategoryName = s.CategoryName ?? string.Empty,
-                    SubCategoryDescription = s.CatDescription ?? string.Empty,
-                    IsActive = s.IsActive
-                }).ToList()
-                : new List<SubCategoryList>(),
-                totalSubCount = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subCount) ? subCount.Count  : 0,
+                    PageNo = filterModelTO.PageNo,
+                    PageSize = filterModelTO.PageSize,
+                    SearchText = filterModelTO.SearchText,
+                    isActive = filterModelTO.isActive,
+                    CategoryId = filterModelTO.CategoryId,
+                    Flag = "1"
+                };
 
-            }).ToList();
+                var subFilter = new FilterModelTO
+                {
+                    PageNo = 0,
+                    PageSize = 0,
+                    isActive = filterModelTO.isActive,
+                    Flag = "2"
+                };
 
-            output.TotalCount = parentResult?.TotalCount; // total parent count for pagination
-            
+                var parentResult = await _itemMasterDAL.GetListOfCategoryMaster(parentFilter);
+                var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
+
+                var subGrouped = subResult?.List?
+                    .GroupBy(s => s.ParentId ?? 0)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                output.List = parentResult?.List?.Select(parent => new CategoryWithSubCategoryListTO
+                {
+                    IdCategory = parent.IdCategory,
+                    IdGroupMaster = parent.IdGroupMaster,
+                    ParentId = parent.ParentId,
+                    CategoryName = parent.CategoryName,
+                    CatDescription = parent.CatDescription,
+                    IsActive = parent.IsActive,
+                    CreatedAt = parent.CreatedAt,
+                    CreatedBy = parent.CreatedBy,
+                    UpdatedAt = parent.UpdatedAt,
+                    UpdatedBy = parent.UpdatedBy,
+                    GroupName = parent.GroupName,
+                    SubCategoryList = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subs)
+                        ? subs.Select(s => new SubCategoryList
+                        {
+                            IdSubCategory = s.IdCategory,
+                            SubCategoryName = s.CategoryName ?? string.Empty,
+                            SubCategoryDescription = s.CatDescription ?? string.Empty,
+                            IsActive = s.IsActive
+                        }).ToList()
+                        : new List<SubCategoryList>(),
+                    totalSubCount = subGrouped != null && subGrouped.TryGetValue(parent.IdCategory, out var subCount)
+                        ? subCount.Count
+                        : 0
+                }).ToList();
+
+                output.TotalCount = parentResult?.TotalCount;
+            }
+
+            else if (flag == "2")
+            {
+                var subCatFilter = new FilterModelTO
+                {
+                    PageNo = filterModelTO.PageNo,
+                    PageSize = filterModelTO.PageSize,
+                    SearchText = filterModelTO.SearchText,
+                    isActive = filterModelTO.isActive,
+                    CategoryId = filterModelTO.CategoryId, // optional: filter by parent category
+                    Flag = "2"
+                };
+
+                // 2️⃣ Fetch ALL items at once (no pagination) then group in memory
+                var itemFilter = new FilterModelTO
+                {
+                    PageNo = 0,
+                    PageSize = 0,
+                    isActive = filterModelTO.isActive,
+                    CategoryId = 0
+                };
+
+                var subCatResult = await _itemMasterDAL.GetListOfCategoryMaster(subCatFilter);
+                var itemResult = await _itemMasterDAL.GetListOfItemMaster(itemFilter);
+
+                // 3️⃣ Group items by IdSubCategory
+                var itemsGrouped = itemResult?.List?
+                    .GroupBy(i => i.IdSubCategory)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                // 4️⃣ Map subcategory + its items
+                output.List = subCatResult?.List?.Select(sub =>
+                {
+                    var items = itemsGrouped != null && itemsGrouped.TryGetValue(sub.IdCategory, out var itemList)
+                        ? itemList
+                        : new List<TblItemMasterTO>();
+
+                    return new CategoryWithSubCategoryListTO
+                    {
+                        IdCategory = sub.IdCategory,
+                        IdGroupMaster = sub.IdGroupMaster,
+                        ParentId = sub.ParentId,
+                        CategoryName = sub.CategoryName,
+                        CatDescription = sub.CatDescription,
+                        IsActive = sub.IsActive,
+                        CreatedAt = sub.CreatedAt,
+                        CreatedBy = sub.CreatedBy,
+                        UpdatedAt = sub.UpdatedAt,
+                        UpdatedBy = sub.UpdatedBy,
+                        GroupName = sub.GroupName,
+                        TotalItemCount = items.Count(),
+                        TotalActiveItemCount = items.Count(i => i.IsActive),
+                        TotalInActiveItemCount = items.Count(i => !i.IsActive),
+                        ItemList = items.Select(i => new ItemList
+                        {
+                            IdItemMaster = i.IdItemMaster,
+                            ItemName = i.ItemName ?? string.Empty,
+                            ItemDescription = i.ItemDescription ?? string.Empty,
+                            Price = i.Price,
+                            Quantity = i.Quantity,
+                            IsActive = i.IsActive
+                        }).ToList()
+                    };
+                }).ToList();
+
+                output.TotalCount = subCatResult?.TotalCount;
+            }
+
             return output;
         }
-
         public async Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster)
         {
             ResultMessage resultMessage = new();

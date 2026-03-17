@@ -56,8 +56,12 @@ namespace DTO.Models.Master.ItemMaster
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
         public int? totalSubCount { get; set; }
-        public string? GroupName { get; set; }
+        public string? GroupName { get; set; } 
         public List<SubCategoryList>? SubCategoryList { get; set; }
+        public int TotalItemCount { get; set; }
+        public int TotalActiveItemCount { get; set; }      // ✅ NEW
+        public int? TotalInActiveItemCount { get; set; }    // ✅ NEW
+        public List<ItemList>? ItemList { get; set; }
     }
     public class SubCategoryList
     {

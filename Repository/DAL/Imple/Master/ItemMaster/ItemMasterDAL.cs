@@ -218,7 +218,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 string flagFilter = flag == "1"
                     ? "AND (ParentId IS NULL OR ParentId = 0)"
                     : flag == "2"
-                        ? "AND (ParentId IS NOT NULL OR ParentId <> 0)"
+                        ? "AND (ParentId IS NOT NULL and ParentId <> 0)"
                         : "";
 
                 string query = $@"
