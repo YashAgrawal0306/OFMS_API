@@ -14,7 +14,7 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
         public ItemMasterDropDownController(IItemMasterDropDownBL iDropdownBL)
         {
             _itemMasterDropDownBL = iDropdownBL;
-        } 
+        }
         #region Group Dropdown
 
         [HttpPost("GetGroupDropdown")]
@@ -44,6 +44,7 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
         }
 
         #endregion 
+
         #region Category Dropdown
 
         [HttpPost("GetCategoryDropdown")]
@@ -74,14 +75,11 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
 
         #endregion
 
-        // -------------------------------------------------------
-        // GET SUB-CATEGORY DROPDOWN (by CategoryId + Filter)
-        // -------------------------------------------------------
         #region SubCategory Dropdown
 
         [HttpPost("GetSubCategoryDropdown")]
         public async Task<IActionResult> GetSubCategoryDropdown(int idCategory, FilterModelTO filterModelTO)
-        {
+            {
             var response = new GlobalResponseModel<IEnumerable<DropDownList>>
             {
                 message = "Sub-category dropdown fetched successfully",
@@ -107,9 +105,6 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
 
         #endregion
 
-        // -------------------------------------------------------
-        // GET ITEM DROPDOWN (by SubCategoryId + Filter)
-        // -------------------------------------------------------
         #region Item Dropdown
 
         [HttpPost("GetItemDropdown")]

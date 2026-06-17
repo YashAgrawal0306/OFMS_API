@@ -96,10 +96,7 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
 
             return await connection.QueryAsync<DropDownList>(query, parameters);
         }
-
-        // -------------------------------------------------------
-        // SubCategory Dropdown — ParentId = idCategory + SearchText
-        // -------------------------------------------------------
+         
         public async Task<IEnumerable<DropDownList>> GetSubCategoryDropdown(int idCategory, FilterModelTO filterModelTO)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -122,7 +119,7 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
                     c.IdCategory   AS Value
                 FROM tblCategoryMaster c
                 WHERE c.IsActive = 1
-                  AND c.ParentId = @IdCategory
+                  AND c.ParentId = {idCategory}
                   AND (@SearchText IS NULL OR c.CategoryName LIKE '%' + @SearchText + '%')
                 ORDER BY c.{sortColumn} {sortOrder}
                 {pagination}";

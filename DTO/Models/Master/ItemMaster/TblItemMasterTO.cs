@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DTO.Models.CommonModel;
+using DTO.Models.Master.ImageMaster.ResponseModel;
 
 namespace DTO.Models.Master.ItemMaster
 {
@@ -21,6 +23,8 @@ namespace DTO.Models.Master.ItemMaster
         public int? CreatedBy { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int? UpdatedBy { get; set; }
+        public string? Ingredients { get; set; }
+        public List<AttachmentListTO>? AttachmentTo { get; set; }
 
     }
 

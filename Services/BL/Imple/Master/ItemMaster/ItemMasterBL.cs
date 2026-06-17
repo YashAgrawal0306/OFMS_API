@@ -1,4 +1,4 @@
-﻿using DTO.Models.CommonModel;
+using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
 using DTO.Models.Master.ItemMaster.ResponseModel;
 using Repository.DAL.Interface.Master.ImageMaster;
@@ -498,7 +498,16 @@ namespace Services.BL.Imple.Master.ItemMaster
         {
             try
             {
-                return await _itemMasterDAL.GetListOfItemMaster(filterModelTO);
+                var data = await _itemMasterDAL.GetListOfItemMaster(filterModelTO);
+                int ImageTypeId = (int)ImageType.ITEM;
+                if (data.List != null && data.TotalCount > 0)
+                {
+                    foreach (var item in data.List)
+                    {
+                        item.AttachmentTo = await _imageMasterDAL.GetItemMasterImageByReferenceId(item.IdItemMaster, ImageTypeId);
+                    }
+                }
+                return data;
             }
             catch (Exception)
             {
@@ -509,7 +518,13 @@ namespace Services.BL.Imple.Master.ItemMaster
         {
             try
             {
-                return await _itemMasterDAL.GetItemMasterById(id);
+                var data = await _itemMasterDAL.GetItemMasterById(id);
+                int ImageTypeId = (int)ImageType.ITEM;
+                if (data != null)
+                {
+                    data.AttachmentTo = await _imageMasterDAL.GetItemMasterImageByReferenceId(data.IdItemMaster, ImageTypeId);
+                }
+                return data;
             }
             catch (Exception)
             {

@@ -400,9 +400,9 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 string query = @"
                     INSERT INTO tblItemMaster
                            (IdGroupMaster, IdCategory, IdSubCategory, ItemName, ItemDescription,
-                            Price, Quantity, IsActive, CreatedAt, CreatedBy)
+                            Price, Quantity, IsActive, CreatedAt, CreatedBy,Ingredients)
                     VALUES (@IdGroupMaster, @IdCategory, @IdSubCategory, @ItemName, @ItemDescription,
-                            @Price, @Quantity, @IsActive, GETDATE(), @CreatedBy)";
+                            @Price, @Quantity, @IsActive, GETDATE(), @CreatedBy,@Ingredients)";
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@IdGroupMaster", model.IdGroupMaster);
@@ -414,6 +414,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 parameters.Add("@Quantity", model.Quantity);
                 parameters.Add("@IsActive", model.IsActive);
                 parameters.Add("@CreatedBy", model.CreatedBy);
+                parameters.Add("@Ingredients", model.Ingredients);
 
                 return await conn.ExecuteAsync(query, parameters);
             }
@@ -454,7 +455,8 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                     CreatedAt,
                     CreatedBy,
                     UpdatedAt,
-                    UpdatedBy
+                    UpdatedBy,
+                    Ingredients
             FROM    tblItemMaster
             WHERE   IsActive         = @IsActive
             AND     (@SubCategoryId  = 0 OR IdSubCategory = @SubCategoryId)
@@ -516,7 +518,8 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                            CreatedAt,
                            CreatedBy,
                            UpdatedAt,
-                           UpdatedBy
+                           UpdatedBy,
+                            Ingredients
                     FROM   tblItemMaster
                     WHERE  IsActive    = @IsActive
                     AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
@@ -596,7 +599,8 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                            Quantity       = @Quantity,
                            IsActive       = @IsActive,
                            UpdatedAt      = @UpdatedAt,
-                           UpdatedBy      = @UpdatedBy
+                           UpdatedBy      = @UpdatedBy,
+                            Ingredients    = @Ingredients
                     WHERE  IdItemMaster   = @IdItemMaster";
 
                 var parameters = new DynamicParameters();
@@ -611,6 +615,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 parameters.Add("@IsActive", model.IsActive);
                 parameters.Add("@UpdatedAt", model.UpdatedAt);
                 parameters.Add("@UpdatedBy", model.UpdatedBy);
+                parameters.Add("@Ingredients", model.Ingredients);
 
                 return await conn.ExecuteAsync(query, parameters);
             }
