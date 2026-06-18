@@ -568,7 +568,8 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                            CreatedAt,
                            CreatedBy,
                            UpdatedAt,
-                           UpdatedBy
+                           UpdatedBy,
+                            Ingredients
                     FROM   tblItemMaster
                     WHERE  IdItemMaster = @IdItemMaster";
 
