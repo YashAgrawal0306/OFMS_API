@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Dapper;
 using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
@@ -74,8 +74,30 @@ namespace Repository.DAL.Imple.Master.ItemMaster
         {
             using var connection = new SqlConnection(_connectionString);
 
-            var sql = @"DELETE FROM tblGroupMaster 
-                WHERE IdGroupMaster = @Id";
+            var sql = @"
+                -- Delete images for items in this group
+                DELETE FROM tblItemMasterImage WHERE ImageTypeId = 4 AND ReferenceId IN (SELECT IdItemMaster FROM tblItemMaster WHERE IdGroupMaster = @Id);
+                
+                -- Delete price history for items in this group
+                DELETE FROM tblItemPriceHistory WHERE IdItem IN (SELECT IdItemMaster FROM tblItemMaster WHERE IdGroupMaster = @Id);
+                
+                -- Delete items in this group
+                DELETE FROM tblItemMaster WHERE IdGroupMaster = @Id;
+
+                -- Delete images for categories and subcategories in this group
+                DELETE FROM tblItemMasterImage WHERE ImageTypeId IN (2, 3) AND ReferenceId IN (SELECT IdCategory FROM TblCategoryMaster WHERE IdGroupMaster = @Id);
+                
+                -- Delete subcategories and categories in this group
+                -- First delete subcategories (where ParentId is not null) to avoid self-referencing foreign key constraints
+                DELETE FROM TblCategoryMaster WHERE IdGroupMaster = @Id AND (ParentId IS NOT NULL AND ParentId <> 0);
+                DELETE FROM TblCategoryMaster WHERE IdGroupMaster = @Id;
+
+                -- Delete images for the group itself
+                DELETE FROM tblItemMasterImage WHERE ImageTypeId = 1 AND ReferenceId = @Id;
+                
+                -- Finally delete the group itself
+                DELETE FROM tblGroupMaster WHERE IdGroupMaster = @Id;
+            ";
 
             return await connection.ExecuteAsync(sql, new { Id = idGroup });
         }

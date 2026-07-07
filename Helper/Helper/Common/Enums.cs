@@ -15,6 +15,16 @@ namespace Helper.Helper.Common
             SUBCATEGORY = 3,
             ITEM = 4
         }
+        public enum OrderStatus
+        {
+            New = 1,
+            Accepted = 2,
+            CookAssigned = 3,
+            Ready = 4,
+            DeliveryAssigned = 5,
+            Completed = 6,
+            Cancelled = 7
+        }
 
     }
 }

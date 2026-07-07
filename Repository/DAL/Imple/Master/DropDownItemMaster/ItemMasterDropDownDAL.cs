@@ -19,7 +19,7 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")!;
         }
-         
+
         public async Task<IEnumerable<DropDownList>> GetGroupDropdown(FilterModelTO filterModelTO)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -44,6 +44,40 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
                 WHERE g.IsActive = 1
                   AND (@SearchText IS NULL OR g.GroupName LIKE '%' + @SearchText + '%')
                 ORDER BY g.{sortColumn} {sortOrder}
+                {pagination}";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@SearchText",
+                string.IsNullOrWhiteSpace(filterModelTO.SearchText) ? null : filterModelTO.SearchText);
+            parameters.Add("@Offset", offset);
+            parameters.Add("@PageSize", pageSize);
+
+            return await connection.QueryAsync<DropDownList>(query, parameters);
+        }
+        public async Task<IEnumerable<DropDownList>> GetPaymentType(FilterModelTO filterModelTO)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            string sortColumn = filterModelTO.SortColumn ?? "PaymentTypeName";
+            string sortOrder = filterModelTO.SortOrder ?? "ASC";
+
+            int pageNo = filterModelTO.PageNo ?? 1;
+            int pageSize = filterModelTO.PageSize ?? 10;
+            bool fetchAll = pageNo == 0 && pageSize == 0;
+            int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
+
+            string pagination = fetchAll
+                ? ""
+                : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+                            string query = $@"    
+                      SELECT 
+                     PaymentTypeName  AS Text,
+                     PaymentTypeId AS Value
+                FROM dimPaymentType 
+                WHERE IsActive = 1
+                  AND (@SearchText IS NULL OR PaymentTypeName LIKE '%' + @SearchText + '%')
+                ORDER BY {sortColumn} {sortOrder}
                 {pagination}";
 
             var parameters = new DynamicParameters();
@@ -96,7 +130,7 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
 
             return await connection.QueryAsync<DropDownList>(query, parameters);
         }
-         
+
         public async Task<IEnumerable<DropDownList>> GetSubCategoryDropdown(int idCategory, FilterModelTO filterModelTO)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -168,6 +202,79 @@ namespace Repository.DAL.Imple.Master.DropDownItemMaster
             parameters.Add("@IdSubCategory", idSubCategory);
             parameters.Add("@SearchText",
                 string.IsNullOrWhiteSpace(filterModelTO.SearchText) ? null : filterModelTO.SearchText);
+            parameters.Add("@Offset", offset);
+            parameters.Add("@PageSize", pageSize);
+
+            return await connection.QueryAsync<DropDownList>(query, parameters);
+        }
+
+        public async Task<IEnumerable<DropDownList>> GetStatusByIdTransation(int IdTransactionType, FilterModelTO filterModelTO)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            string sortColumn = filterModelTO.SortColumn ?? "StatusName";
+            string sortOrder = filterModelTO.SortOrder ?? "ASC";
+
+            int pageNo = filterModelTO.PageNo ?? 1;
+            int pageSize = filterModelTO.PageSize ?? 10;
+            bool fetchAll = pageNo == 0 && pageSize == 0;
+            int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
+
+            string pagination = fetchAll
+                ? ""
+                : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+            string query = $@"
+                      SELECT 
+                          i.StatusName     AS Text,
+                          i.IdStatus AS Value
+                      FROM dimstatus i Left JOIn dimTransactionType t ON i.IdTransactionType = t.IdTransactionType
+                      WHERE i.IsActive      = 1
+                        AND i.IdTransactionType = @IdTransactionType
+                    ORDER BY i.{sortColumn} {sortOrder}
+                {pagination}";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@IdTransactionType", IdTransactionType);
+            parameters.Add("@Offset", offset);
+            parameters.Add("@PageSize", pageSize);
+
+            return await connection.QueryAsync<DropDownList>(query, parameters);
+        }
+        public async Task<IEnumerable<DropDownList>> GetUserDropDownList(int idRole, FilterModelTO filterModelTO)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            string sortColumn = string.IsNullOrWhiteSpace(filterModelTO.SortColumn)
+      ? "username"
+      : filterModelTO.SortColumn;
+            string sortOrder = filterModelTO.SortOrder ?? "ASC";
+
+            int pageNo = filterModelTO.PageNo ?? 1;
+            int pageSize = filterModelTO.PageSize ?? 10;
+            bool fetchAll = pageNo == 0 && pageSize == 0;
+            int offset = fetchAll ? 0 : (pageNo - 1) * pageSize;
+
+            string pagination = fetchAll
+                ? ""
+                : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+            string query = $@"
+                       SELECT 
+        username     AS Text,
+        tbluser.userid AS Value
+    FROM tbluser tbluser LEFT JOIN tblUserRoleMapping on tbluser.userid = tblUserRoleMapping.userid 
+    WHERE tbluser.Isactive = 1 AND tblUserRoleMapping.RoleId = {idRole}";
+
+            if (filterModelTO.SearchText != null && filterModelTO.SearchText != "")
+            {
+                query += $@" AND username LIKE '%{filterModelTO.SearchText}%'";
+            }
+            query += $@" ORDER BY {sortColumn} {sortOrder} {pagination}";
+
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@idRole", idRole);
             parameters.Add("@Offset", offset);
             parameters.Add("@PageSize", pageSize);
 

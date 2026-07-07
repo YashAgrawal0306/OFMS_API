@@ -1,15 +1,19 @@
-﻿using OFMS_API.Models;
+﻿using DTO.Models.CommonModel;
+using DTO.Models.Master.AddressMaster;
+using DTO.Models.Master.OrderMaster;
+using Microsoft.Data.SqlClient;
+using OFMS_API.Models;
 using OFMS_API.Models.DTO;
 
 namespace OFMS_API.DAL.Interface
 {
     public interface IOrderDAL
     {
-        Task<int> AddToCart(CartTO cart);
-        Task<List<MyCartDTO>> GetMyCartItem(int userId);
-        Task<int> CheckItemInCart(int userid,int menuitemid);
-        Task<int> RemoveCartItem(int cartid);
-        Task<CartSummaryDetails> GetCartSummaryDeatil(int userid);
-        Task<int> UpdateCartItem(int cartId, int quantity);
+        Task<int> AddOrderMaster(OrderMasterTO orderMasterTO,SqlConnection conn,SqlTransaction tran);
+        Task<int> AddPaymentData(TblPaymentTO tblPaymentTO,SqlConnection conn,SqlTransaction tran);
+        Task<OutPutClass<OrderListResponseTO>> GetOrderMasterList(OrderListFilter orderListFilter);
+        Task<tblAddressResponseTO> GetAddressByIdAddressMapping(int idAddressMapping);
+        Task<OrderListResponseTO> GetOrderMasterListByIdOrder(int IdOrderMaster);
+        Task<bool> UpdateOrderMaster(OrderMasterTO order);
     }
 }

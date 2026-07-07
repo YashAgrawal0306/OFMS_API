@@ -1,0 +1,153 @@
+﻿using DTO.Models.CommonModel;
+using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.ResponseModel;
+using DTO.Models.Master.OrderMaster;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using OFMS_API.BL.Interface;
+
+namespace OFMS_API.Controllers.Master.OrderMaster
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class OrderMasterController : ControllerBase
+    {
+        private readonly IOrderBL _iOrderBL;
+        public OrderMasterController(IOrderBL iOrderBL)
+        {
+            _iOrderBL = iOrderBL;
+        }
+        [HttpPost("AddOrderMaster")]
+        public async Task<IActionResult> AddOrderMaster([FromBody] OrderMasterTO model)
+        {
+            var response = new GlobalResponseModel<ResultMessage>
+            {
+                message = "Order added successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (model == null || string.IsNullOrWhiteSpace(model.OrderNo))
+            {
+                response.message = "Invalid order data";
+                response.status = "Fail";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                return BadRequest(response);
+            }
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? Userid = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+                if (Userid == 0)
+                {
+                    response.message = "Unauthorized user";
+                    response.status = "Fail";
+                    response.statusCode = StatusCodes.Status401Unauthorized;
+                    return Unauthorized(response);
+                }
+                model.CreatedBy = Convert.ToInt32(Userid);
+                var result = await _iOrderBL.AddOrderMaster(model);
+
+                if (result.IsSuccess == false)
+                {
+                    response.message = "Failed to add Order";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    response.data = result;
+                    return Ok(response);
+                }
+
+                response.data = result;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+        [HttpPost("GetAllOrderMasterList")]
+        public async Task<IActionResult> GetOrderMasterList(OrderListFilter orderListFilter)
+        {
+            var response = new GlobalResponseModel<List<OrderListResponseTO>>
+            {
+                message = "Groups fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var data = await _iOrderBL.GetOrderMasterList(orderListFilter);
+                response.data = data.List;
+                response.TotalRecords = data.TotalCount;
+
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error addd";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpGet("GetOrderMasterListByIdOrder")]
+        public async Task<IActionResult> GetOrderMasterListByIdOrder(int IdOrderMaster)
+        {
+            var response = new GlobalResponseModel<OrderListResponseTO>
+            {
+                message = "Groups fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            try
+            {
+                var data = await _iOrderBL.GetOrderMasterListByIdOrder(IdOrderMaster);
+                response.data = data; 
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error addd";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpPost("UpdateOrderMaster")]
+        public async Task<IActionResult> UpdateOrderMaster(OrderMasterTO order)
+        {
+            try
+            {
+                bool result = await _iOrderBL.UpdateOrderMaster(order);
+
+                return Ok(new
+                {
+                    Status = "Success",
+                    Message = "Order updated successfully",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
+    }
+}

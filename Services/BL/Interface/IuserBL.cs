@@ -1,13 +1,16 @@
 ﻿using DTO.Models.CommonModel;
-using OFMS_API.Models;
+using DTO.Models.Master.UserMaster;
 
 namespace OFMS_API.BL.Interface
 {
     public interface IuserBL
     {
-        Task<OutPutClass<TblUserTO>> GetAllCust(FilterModelTO filter);
+        Task<OutPutClass<TblUserResponseTO>> GetAllCust(FilterModelTO filter);
+        Task<TblUserResponseTO> GetUserByIdUser(int idUser);
         Task<int> AddNewCustomerBL(TblUserTO customerDTO);
+        Task<int> EditUserTO(TblUserTO customerDTO);
         Task<string> LoginBL(TblUserLogin tbluserlogin);
         Task<OutPutClass<TblUserTO>> GetAllMemberList(FilterModelTO filter);
+        Task<List<TblRoleTO>> GetAllRoles();
     }
 }

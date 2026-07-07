@@ -1,4 +1,5 @@
 ﻿using DTO.Models.CommonModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Services.BL.Interface.Master.ItemMasterDropDownBL;
@@ -134,5 +135,88 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
         }
 
         #endregion
+
+        //status
+
+        [HttpPost("GetStatusByIdTransation")]
+        public async Task<IActionResult> GetStatusByIdTransation(int IdTransactionType, FilterModelTO filterModelTO)
+        {
+            var response = new GlobalResponseModel<IEnumerable<DropDownList>>
+            {
+                message = "Item dropdown fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+            try
+            {
+                var data = await _itemMasterDropDownBL.GetStatusByIdTransation(IdTransactionType, filterModelTO);
+                response.data = data;
+                response.TotalRecords = data.Count();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpPost("GetUserDropDownList")]
+        public async Task<IActionResult> GetUserDropDownList(int idRole,FilterModelTO filterModelTO)
+        {
+            var response = new GlobalResponseModel<IEnumerable<DropDownList>>
+            {
+                message = "Item dropdown fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+            try
+            {
+                var data = await _itemMasterDropDownBL.GetUserDropDownList(idRole,filterModelTO);
+                response.data = data;
+                response.TotalRecords = data.Count();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+
+        [HttpPost("GetPaymentType")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPaymentType(FilterModelTO filterModelTO)
+        {
+            var response = new GlobalResponseModel<IEnumerable<DropDownList>>
+            {
+                message = "Item dropdown fetched successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+            try
+            {
+                var data = await _itemMasterDropDownBL.GetPaymentType(filterModelTO);
+                response.data = data;
+                response.TotalRecords = data.Count();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.message = ex.Message;
+                response.exception = ex;
+                response.status = "Error";
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
     }
 }

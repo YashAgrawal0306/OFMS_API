@@ -22,6 +22,10 @@ namespace Services.BL.Imple.Master.ItemMasterDropDownBL
         {
             return await _itemMasterDropDownDAL.GetGroupDropdown(filterModelTO);
         }
+        public async Task<IEnumerable<DropDownList>> GetPaymentType(FilterModelTO filterModelTO)
+        {
+            return await _itemMasterDropDownDAL.GetPaymentType(filterModelTO);
+        }
 
         public async Task<IEnumerable<DropDownList>> GetCategoryDropdown(int idGroupMaster, FilterModelTO filterModelTO)
         {
@@ -36,6 +40,14 @@ namespace Services.BL.Imple.Master.ItemMasterDropDownBL
         public async Task<IEnumerable<DropDownList>> GetItemDropdown(int idSubCategory, FilterModelTO filterModelTO)
         {
             return await _itemMasterDropDownDAL.GetItemDropdown(idSubCategory, filterModelTO);
+        }
+        public async Task<IEnumerable<DropDownList>> GetStatusByIdTransation(int IdTransactionType, FilterModelTO filterModelTO)
+        {
+            return await _itemMasterDropDownDAL.GetStatusByIdTransation(IdTransactionType, filterModelTO);
+        }
+        public async Task<IEnumerable<DropDownList>> GetUserDropDownList(int idRole,FilterModelTO filterModelTO)
+         {
+            return await _itemMasterDropDownDAL.GetUserDropDownList(idRole,filterModelTO);
         }
     }
 }

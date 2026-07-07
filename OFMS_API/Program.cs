@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using OFMS_API.BL.Imple;
@@ -19,6 +19,18 @@ using Services.BL.Imple.Master.ItemMasterDropDownBL;
 using Services.BL.Interface.Master.ImageMaster;
 using Services.BL.Interface.Master.ItemMaster;
 using Services.BL.Interface.Master.ItemMasterDropDownBL;
+using Repository.DAL.Imple.Master.AddressMaster;
+using Repository.DAL.Interface.Master.AddressMaster;
+using Services.BL.Imple.Master.AddressMaster;
+using Services.BL.Interface.Master.AddressMaster;
+using Repository.DAL.Imple.Master.CookAssignment;
+using Repository.DAL.Interface.Master.CookAssignment;
+using Services.BL.Imple.Master.CookAssignment;
+using Services.BL.Interface.Master.CookAssignment;
+using Repository.DAL.Imple.Master.DeliveryAssignment;
+using Repository.DAL.Interface.Master.DeliveryAssignment;
+using Services.BL.Imple.Master.DeliveryAssignment;
+using Services.BL.Interface.Master.DeliveryAssignment;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,6 +68,12 @@ builder.Services.AddScoped<IOrderBL, OrderBL>();
 builder.Services.AddScoped<IItemMasterBL, ItemMasterBL>();
 builder.Services.AddScoped<IImageMasterDAL, ImageMasterDAL>();
 builder.Services.AddScoped<IItemMasterDropDownDAL, ItemMasterDropDownDAL>();
+builder.Services.AddScoped<IAddressMasterDAL, AddressMasterDAL>();
+builder.Services.AddScoped<IAddressMasterBL, AddressMasterBL>();
+builder.Services.AddScoped<ICookAssignDAL, CookAssignDAL>();
+builder.Services.AddScoped<ICookAssignBL, CookAssignBL>();
+builder.Services.AddScoped<IDeliveryAssignmentDAL, DeliveryAssignmentDAL>();
+builder.Services.AddScoped<IDeliveryAssignmentBL, DeliveryAssignmentBL>();
 
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>
@@ -122,8 +140,6 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
- 
-
 app.UseSwagger();
 app.UseSwaggerUI();
 

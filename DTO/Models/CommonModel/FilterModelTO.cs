@@ -1,4 +1,4 @@
-﻿namespace DTO.Models.CommonModel
+namespace DTO.Models.CommonModel
 {
     public class FilterModelTO
     {
@@ -10,7 +10,8 @@
         public string? Flag { get; set; }
         public bool? isActive { get; set; } = true;
         public int? CategoryId { get; set; } = 0;
-        public int? RoleId { get; set; }
+        public int? RoleId { get; set; } = 0;
+        public int? IdStatus { get; set; } = 0;
 
     }
     public class OutPutClass<T> where T : class
@@ -18,4 +19,5 @@
         public List<T>? List { get; set; }
         public int? TotalCount { get; set; }
     }
+
 }

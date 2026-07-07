@@ -1,46 +1,86 @@
-﻿using OFMS_API.BL.Interface;
+﻿using DTO.Models.CommonModel;
+using DTO.Models.Master.OrderMaster;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using OFMS_API.BL.Interface;
+using OFMS_API.DAL.Imple;
 using OFMS_API.DAL.Interface;
 using OFMS_API.Models;
 using OFMS_API.Models.DTO;
 
 namespace OFMS_API.BL.Imple
 {
-    public class OrderBL(IOrderDAL _iOrderDAL) :IOrderBL
-
+    public class OrderBL : IOrderBL
     {
-        public async Task<int> AddToCart(CartTO cart)
+        private readonly string connq;
+        private readonly IOrderDAL _iOrderDAL;
+        public OrderBL(IOrderDAL iOrderDAL,IConfiguration configuration)
         {
-            //check the cart item is aleready exist or not for this user
-            int userId = cart.UserId;
-            int menuitemid = cart.MenuItemId;
-            int Check =await _iOrderDAL.CheckItemInCart(userId, menuitemid);
-            if (Check == 0) { 
-            return await _iOrderDAL.AddToCart(cart);
+            _iOrderDAL = iOrderDAL;
+            connq = configuration.GetConnectionString("DefaultConnection") ?? "";
+        }
+        public async Task<ResultMessage> AddOrderMaster(OrderMasterTO orderMasterTO)
+        {
+            ResultMessage resultMessage = new();
+            using var conn = new SqlConnection(connq);
+            await conn.OpenAsync();
+            SqlTransaction tran = conn.BeginTransaction();
+            int result = await _iOrderDAL.AddOrderMaster(orderMasterTO,conn,tran);
+            if (result > 0)
+            {
+                orderMasterTO.PaymentDetail.IdOrderMaster = result;
+                int idPaymentDeatil =await _iOrderDAL.AddPaymentData(orderMasterTO.PaymentDetail,conn,tran);
+                if (idPaymentDeatil > 0)
+                {
+                    tran.Commit();
+                    resultMessage.IsSuccess = true;
+                    resultMessage.Message = "Order Added Successfully";
+                }
+                else
+                {
+                    tran.Rollback();
+                    resultMessage.IsSuccess = false;
+                    resultMessage.Message = "Payment Detail Not Added";
+                }
             }
             else
             {
-                return 0;
+                tran.Rollback();
+                resultMessage.IsSuccess = false;
+                resultMessage.Message = "Order Not Added";
             }
+            return resultMessage;
+
         }
 
-        public async Task<CartSummaryDetails> GetCartSummaryDeatil(int userid)
+        public async Task<OutPutClass<OrderListResponseTO>> GetOrderMasterList(OrderListFilter orderListFilter)
         {
-            return await _iOrderDAL.GetCartSummaryDeatil(userid);
+            var data = await _iOrderDAL.GetOrderMasterList(orderListFilter);
+            if (data != null)
+            {
+                foreach(var item in data.List)
+                {
+                    if (item.IdAddressMapping > 0)
+                    {
+                        item.tblAddressResponseTO = await _iOrderDAL.GetAddressByIdAddressMapping(item.IdAddressMapping);
+                    }
+                }
+            }
+            return data;
+        }
+        public async Task<OrderListResponseTO> GetOrderMasterListByIdOrder(int IdOrderMaster)
+        {
+            var data =  await _iOrderDAL.GetOrderMasterListByIdOrder(IdOrderMaster);
+            if(data != null)
+            {
+                data.tblAddressResponseTO = await _iOrderDAL.GetAddressByIdAddressMapping(data.IdAddressMapping);
+            }
+            return data;
         }
 
-        public async Task<List<MyCartDTO>> GetMyCartItem(int userId)
+        public async Task<bool> UpdateOrderMaster(OrderMasterTO order)
         {
-           return await _iOrderDAL.GetMyCartItem(userId);
-        }
-
-        public async Task<int> RemoveCartItem(int cartid)
-        {
-            return await _iOrderDAL.RemoveCartItem(cartid);
-        }
-
-        public async Task<int> UpdateCartItem(int cartId, int quantity)
-        {
-           return await _iOrderDAL.UpdateCartItem(cartId, quantity);
+            return await _iOrderDAL.UpdateOrderMaster(order);
         }
     }
 }
