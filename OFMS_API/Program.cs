@@ -32,7 +32,14 @@ using Repository.DAL.Interface.Master.DeliveryAssignment;
 using Services.BL.Imple.Master.DeliveryAssignment;
 using Services.BL.Interface.Master.DeliveryAssignment;
 using System.Text;
-
+using OFMS_API.Hubs;
+using Repository.DAL.Interface.Notification;
+using Repository.DAL.Imple.Notification;
+using Services.BL.Interface.Notification;
+using Services.BL.Imple.Notification;
+using OFMS_API.Services;
+using OFMS_API.Helper.Common;
+using Microsoft.AspNetCore.SignalR;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -52,6 +59,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.CommonRegister();
+builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddSignalR();
 
 builder.Services.AddScoped<IuserDAL, userDAL>();
@@ -75,14 +83,38 @@ builder.Services.AddScoped<ICookAssignBL, CookAssignBL>();
 builder.Services.AddScoped<IDeliveryAssignmentDAL, DeliveryAssignmentDAL>();
 builder.Services.AddScoped<IDeliveryAssignmentBL, DeliveryAssignmentBL>();
 
+// Customer Home Page Dashboard stats
+builder.Services.AddScoped<Repository.DAL.Interface.Master.CustomerHome.ICustomerHomeDAL, Repository.DAL.Imple.Master.CustomerHome.CustomerHomeDAL>();
+builder.Services.AddScoped<OFMS_API.BL.Interface.Master.CustomerHome.ICustomerHomeBL, OFMS_API.BL.Imple.Master.CustomerHome.CustomerHomeBL>();
+
+// Cook Module (For the Cook's Dashboard)
+builder.Services.AddScoped<OFMS_API.Repository.DAL.Interface.CookModule.ICookModuleDAL, OFMS_API.Repository.DAL.Imple.CookModule.CookModuleDAL>();
+builder.Services.AddScoped<OFMS_API.Services.BL.Interface.CookModule.ICookModuleBL, OFMS_API.Services.BL.Imple.CookModule.CookModuleBL>();
+
+// RBAC Permissions
+builder.Services.AddScoped<OFMS_API.Repository.DAL.Interface.Permission.IPermissionDAL, OFMS_API.Repository.DAL.Imple.Permission.PermissionDAL>();
+builder.Services.AddScoped<OFMS_API.BL.Interface.Permission.IPermissionBL, OFMS_API.BL.Imple.Permission.PermissionBL>();
+
+// Notifications
+builder.Services.AddScoped<INotificationDAL, NotificationDAL>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationMasterDAL, NotificationMasterDAL>();
+builder.Services.AddScoped<INotificationMasterBL, NotificationMasterBL>();
+
+// Cart Module
+builder.Services.AddScoped<OFMS_API.DAL.Interface.ICartRepository, OFMS_API.DAL.Imple.CartRepository>();
+builder.Services.AddScoped<OFMS_API.BL.Interface.ICartBL, OFMS_API.BL.Imple.CartBL>();
+
+
 // Updated CORS policy to include your Angular app's origin
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularApp", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true) // allows any origin
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // Required for SignalR over WebSocket with Tokens
 
     });
 });
@@ -109,6 +141,14 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+            {
+                context.Token = accessToken;
+                return Task.CompletedTask;
+            }
+
             var token = context.Request.Headers["Authorization"].FirstOrDefault();
             if (!string.IsNullOrEmpty(token))
             {
@@ -160,6 +200,12 @@ app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
+        @"D:\Project\OFMS\OFMS_API\OFMS_API\Images\UserProfileImages\"),
+    RequestPath = "/Images/UserProfileImages"
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
         @"D:\Project\OFMS\OFMS_API\OFMS_API\Images\ProductImages\"),
     RequestPath = "/ProductImages"
 });
@@ -172,5 +218,6 @@ app.UseAuthorization();
 app.UseMiddleware<ApiLoggingMiddleware>();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

@@ -13,6 +13,11 @@ namespace DTO.Models.CommonModel
         public int? RoleId { get; set; } = 0;
         public int? IdStatus { get; set; } = 0;
 
+        public int? GroupId { get; set; } = 0;
+        public int? SubCategoryId { get; set; } = 0;
+        public int? ItemId { get; set; } = 0;
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
     }
     public class OutPutClass<T> where T : class
     {

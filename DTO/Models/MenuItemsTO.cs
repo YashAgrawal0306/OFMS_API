@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System;
 
 namespace OFMS_API.Models
@@ -21,6 +21,7 @@ namespace OFMS_API.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public string? CategoryName {  get; set; }
-
+        public string? GroupName { get; set; }
+        public string? SubCategoryName { get; set; }
     }
 }

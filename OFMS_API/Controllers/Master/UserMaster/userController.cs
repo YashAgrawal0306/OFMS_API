@@ -1,4 +1,4 @@
-﻿using DTO.Models.CommonModel;
+using DTO.Models.CommonModel;
 using DTO.Models.Master.UserMaster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -119,13 +119,66 @@ namespace OFMS_API.Controllers.Master.UserMaster
                 int result = await db.AddNewCustomerBL(user);
                 response.data = result;
 
-                if (result > 0)
+                if (result <= 0)
                 {
                     response.message = "Data not added";
                     response.status = "Error";
                     response.statusCode = StatusCodes.Status500InternalServerError;
                 }
 
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.exception = ex;
+                response.message = Helper.Common.Utility.FormatExceptionMessage(ex);
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.status = "Error";
+                response.data = 0;
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new user (Member or Customer) with an optional address in one atomic transaction.
+        /// Works for any role. EntityType is derived automatically from RoleId.
+        /// Lat/Long are handled server-side (not required from frontend).
+        /// </summary>
+        [HttpPost("AddNewUserWithAddress")]
+        [AllowAnonymous]
+        public async Task<IActionResult> AddNewUserWithAddress([FromForm] TblUserWithAddressTO model)
+        {
+            var response = new GlobalResponseModel<int>
+            {
+                message = "User added successfully",
+                statusCode = StatusCodes.Status200OK,
+                status = "Success"
+            };
+
+            if (model == null || string.IsNullOrWhiteSpace(model.UserName))
+            {
+                response.message = "Invalid user data";
+                response.statusCode = StatusCodes.Status400BadRequest;
+                response.status = "Fail";
+                response.data = 0;
+                return BadRequest(response);
+            }
+
+            try
+            {
+                int userId = await db.AddNewUserWithAddressBL(model);
+                response.data = userId;
+
+                if (userId <= 0)
+                {
+                    response.message = "Failed to add user";
+                    response.status = "Error";
+                    response.statusCode = StatusCodes.Status500InternalServerError;
+                    return Ok(response);
+                }
+
+                response.message = "User added successfully";
+                response.status = "Success";
                 return Ok(response);
             }
             catch (Exception ex)

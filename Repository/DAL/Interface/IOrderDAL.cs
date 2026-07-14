@@ -1,4 +1,4 @@
-﻿using DTO.Models.CommonModel;
+using DTO.Models.CommonModel;
 using DTO.Models.Master.AddressMaster;
 using DTO.Models.Master.OrderMaster;
 using Microsoft.Data.SqlClient;
@@ -15,5 +15,6 @@ namespace OFMS_API.DAL.Interface
         Task<tblAddressResponseTO> GetAddressByIdAddressMapping(int idAddressMapping);
         Task<OrderListResponseTO> GetOrderMasterListByIdOrder(int IdOrderMaster);
         Task<bool> UpdateOrderMaster(OrderMasterTO order);
+        Task<ResultMessage> UpdateOrderStatus(UpdateOrderStatusRequest request);
     }
 }

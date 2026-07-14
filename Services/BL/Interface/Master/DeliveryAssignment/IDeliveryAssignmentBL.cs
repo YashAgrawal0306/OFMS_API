@@ -12,5 +12,6 @@ namespace Services.BL.Interface.Master.DeliveryAssignment
         Task<int> AcceptDelivery(int idDeliveryAssignment, int updatedBy);
         Task<int> PickUpOrder(int idDeliveryAssignment, int updatedBy);
         Task<int> MarkDelivered(int idDeliveryAssignment, int updatedBy);
+        Task<DeliveryDashboardCountsTO> GetDashboardCounts(int deliveryUserId);
     }
 }

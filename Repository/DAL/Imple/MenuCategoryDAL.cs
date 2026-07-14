@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using DTO.Models.CommonModel;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -25,10 +25,10 @@ namespace OFMS_API.DAL.Imple
         {
             using var conn = new SqlConnection(connq);
             string sql = @"
-                          SELECT  c.id, c.name, c.cat_description,c.catImage,
-                          COUNT(m.MenuItemId) AS totalitem, CAST(MIN(m.Price)AS FLOAT) AS minprice,
-                          CAST(MAX(m.Price)AS FLOAT) AS maxprice FROM menu_categories c LEFT JOIN menu_items m
-                          ON c.id = m.CategoryId GROUP BY c.id, c.name, c.cat_description ,c.catImage";
+                          SELECT  c.IdCategory AS id, c.CategoryName AS name, c.CatDescription AS cat_description, '' AS catImage,
+                          COUNT(m.IdItemMaster) AS totalitem, CAST(MIN(m.Price)AS FLOAT) AS minprice,
+                          CAST(MAX(m.Price)AS FLOAT) AS maxprice FROM tblCategoryMaster c LEFT JOIN tblItemMaster m
+                          ON c.IdCategory = m.IdCategory GROUP BY c.IdCategory, c.CategoryName, c.CatDescription";
 
             var result = await conn.QueryAsync(sql);
             var ResultList = result.Select(x => new MenuCategoriesTO
@@ -41,14 +41,7 @@ namespace OFMS_API.DAL.Imple
                 maxprice = x.maxprice ?? 0,
                 totalitem = x.totalitem ?? 0,
             });
-            if (result != null)
-            {
-                return ResultList.ToList();
-            }
-            else
-            {
-                return ResultList?.ToList() ?? new List<MenuCategoriesTO>();
-            }
+            return ResultList.ToList();
         }
         #endregion
 
@@ -64,6 +57,11 @@ namespace OFMS_API.DAL.Imple
 
                 DynamicParameters parameters = new DynamicParameters();
                 parameters.Add("@CategoryId", filterModelTO.CategoryId, DbType.Int32);
+                parameters.Add("@GroupId", filterModelTO.GroupId ?? 0, DbType.Int32);
+                parameters.Add("@SubCategoryId", filterModelTO.SubCategoryId ?? 0, DbType.Int32);
+                parameters.Add("@ItemId", filterModelTO.ItemId ?? 0, DbType.Int32);
+                parameters.Add("@FromDate", filterModelTO.FromDate, DbType.DateTime);
+                parameters.Add("@ToDate", filterModelTO.ToDate, DbType.DateTime);
                 parameters.Add("@SearchText", string.IsNullOrWhiteSpace(filterModelTO.SearchText) ? null : $"%{filterModelTO.SearchText}%", DbType.String);
                 parameters.Add("@IsActive", filterModelTO.isActive, DbType.Boolean);
                 parameters.Add("@PageSize", pageSize, DbType.Int32);
@@ -72,33 +70,42 @@ namespace OFMS_API.DAL.Imple
                 var sql = @"
                     ;WITH Paginated AS (
                         SELECT 
-                            m.MenuItemId,
-                            m.MenuName,
-                            m.ProductName,
-                            m.CategoryId,
-                            c.name AS CategoryName,
-                            m.Status,
+                            m.IdItemMaster AS MenuItemId,
+                            m.ItemName AS MenuName,
+                            m.ItemName AS ProductName,
+                            m.IdCategory AS CategoryId,
+                            c.CategoryName AS CategoryName,
+                            g.GroupName AS GroupName,
+                            sub.CategoryName AS SubCategoryName,
+                            m.IsActive AS Status,
                             m.Price,
-                            m.FinalPrice,
-                            m.DiscountPercent,
+                            m.Price AS FinalPrice,
+                            0 AS DiscountPercent,
                             m.Ingredients,
-                            m.Description,
-                            m.CookingTimeMinutes,    
-                            m.ImageUrl,
-                            m.ThumbnailUrl,
+                            m.ItemDescription AS Description,
+                            0 AS CookingTimeMinutes,    
+                            COALESCE(img.ImageUrl, '') AS ImageUrl,
+                            COALESCE(img.ImageUrl, '') AS ThumbnailUrl,
                             m.CreatedAt,
                             m.UpdatedAt,
-                            ROW_NUMBER() OVER (ORDER BY m.MenuItemId ASC) AS RowNum
-                        FROM menu_items m
-                        INNER JOIN menu_categories c ON m.CategoryId = c.id
+                            ROW_NUMBER() OVER (ORDER BY m.IdItemMaster ASC) AS RowNum
+                        FROM tblItemMaster m
+                        INNER JOIN tblCategoryMaster c ON m.IdCategory = c.IdCategory
+                        LEFT JOIN tblGroupMaster g ON m.IdGroupMaster = g.IdGroupMaster
+                        LEFT JOIN tblCategoryMaster sub ON m.IdSubCategory = sub.IdCategory
+                        LEFT JOIN tblItemMasterImage img ON m.IdItemMaster = img.ReferenceId AND img.IsMain = 1 AND img.ImageTypeId = 4
                         WHERE (@SearchText IS NULL OR @SearchText  = ''
-                               OR (m.MenuName LIKE @SearchText 
-                                   OR m.ProductName LIKE @SearchText 
-                                   OR c.Name LIKE @SearchText 
-                                   OR m.Description LIKE @SearchText 
+                               OR (m.ItemName LIKE @SearchText 
+                                   OR c.CategoryName LIKE @SearchText 
+                                   OR m.ItemDescription LIKE @SearchText 
                                    OR m.Ingredients LIKE @SearchText))
-                          AND (@IsActive IS NULL OR m.Status = @IsActive)
-                          AND (@CategoryId = 0 OR m.CategoryId = @CategoryId)
+                          AND (@IsActive IS NULL OR m.IsActive = @IsActive)
+                          AND (@CategoryId = 0 OR m.IdCategory = @CategoryId)
+                          AND (@GroupId = 0 OR m.IdGroupMaster = @GroupId)
+                          AND (@SubCategoryId = 0 OR m.IdSubCategory = @SubCategoryId)
+                          AND (@ItemId = 0 OR m.IdItemMaster = @ItemId)
+                          AND (@FromDate IS NULL OR m.CreatedAt >= @FromDate)
+                          AND (@ToDate IS NULL OR m.CreatedAt <= @ToDate)
                     )
                     SELECT *
                     FROM Paginated
@@ -114,7 +121,9 @@ namespace OFMS_API.DAL.Imple
                     ProductName = x.ProductName ?? "",
                     CategoryId = x.CategoryId ?? 0,
                     CategoryName = x.CategoryName ?? "",
-                    Status = x.Status ?? 0,
+                    GroupName = x.GroupName ?? "",
+                    SubCategoryName = x.SubCategoryName ?? "",
+                    Status = x.Status ?? false,
                     Price = x.Price ?? 0,
                     FinalPrice = x.FinalPrice ?? 0,
                     DiscountPercent = x.DiscountPercent ?? 0,
@@ -134,24 +143,16 @@ namespace OFMS_API.DAL.Imple
                 throw;
             }
         }
-
         #endregion
 
-        #region
+        #region GetCategoryDropDownListDAL
         public async Task<List<DropDownList>> GetCategoryDropDownListDAL()
         {
             var con = new SqlConnection(connq);
-            var query = "Select name as Text,id as Value from menu_categories";
+            var query = "SELECT CategoryName AS Text, IdCategory AS Value FROM tblCategoryMaster WHERE IsActive = 1";
             var result = await con.QueryAsync<DropDownList>(query);
-            var resultlist = result.Select(raw => new DropDownList
-            {
-                Text = raw.Text,
-                Value = raw.Value
-            });
-
-            return resultlist.ToList();
+            return result.ToList();
         }
-
         #endregion
 
         #endregion
@@ -164,12 +165,10 @@ namespace OFMS_API.DAL.Imple
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
             parameter.Add("@Name", categories.name, DbType.String);
-            parameter.Add("@catImage", categories.catImage, DbType.String);
             parameter.Add("@cat_description", categories.cat_description, DbType.String);
-            string sql = @" INSERT INTO menu_categories (name,catImage,cat_description) VALUES (@Name,@catImage,@cat_description)";
+            string sql = @"INSERT INTO tblCategoryMaster (CategoryName, CatDescription, IsActive, CreatedAt) VALUES (@Name, @cat_description, 1, GETDATE())";
             return await conn.ExecuteAsync(sql, parameter);
         }
-
         #endregion
 
         #region AddNewMenuItem
@@ -177,32 +176,34 @@ namespace OFMS_API.DAL.Imple
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
-            parameter.Add("@MenuName", menu_Item.MenuName, DbType.String);
-            parameter.Add("@ProductName", menu_Item.ProductName, DbType.String);
-            parameter.Add("@CategoryId", menu_Item.CategoryId, DbType.Int32);
-            parameter.Add("@Status", menu_Item.Status, DbType.Boolean);
+            parameter.Add("@ItemName", menu_Item.ProductName ?? menu_Item.MenuName, DbType.String);
+            parameter.Add("@IdCategory", menu_Item.CategoryId, DbType.Int32);
+            parameter.Add("@IsActive", menu_Item.Status, DbType.Boolean);
             parameter.Add("@Price", menu_Item.Price, DbType.Decimal);
-            parameter.Add("@DiscountPercent", menu_Item.DiscountPercent, DbType.Decimal);
             parameter.Add("@Ingredients", menu_Item.Ingredients, DbType.String);
-            parameter.Add("@Description", menu_Item.Description, DbType.String);
-            parameter.Add("@CookingTimeMinutes", menu_Item.CookingTimeMinutes, DbType.Int32);
-            parameter.Add("@ImageUrl", menu_Item.ImageUrl, DbType.String);
-            parameter.Add("@ThumbnailUrl", menu_Item.ImageUrl, DbType.String);
+            parameter.Add("@ItemDescription", menu_Item.Description, DbType.String);
             parameter.Add("@CreatedAt", DateTime.Now, DbType.DateTime);
             parameter.Add("@UpdatedAt", DateTime.Now, DbType.DateTime);
 
-            string query = @"INSERT INTO menu_items
-                    (MenuName, ProductName, CategoryId, Status, Price, DiscountPercent,
-                    Ingredients, Description, CookingTimeMinutes, ImageUrl, ThumbnailUrl, CreatedAt, UpdatedAt)
+            string query = @"INSERT INTO tblItemMaster
+                    (ItemName, IdCategory, IsActive, Price, Ingredients, ItemDescription, CreatedAt, UpdatedAt)
                     VALUES
-                    (@MenuName, @ProductName, @CategoryId, @Status, @Price, @DiscountPercent,
-                    @Ingredients, @Description, @CookingTimeMinutes, @ImageUrl, @ThumbnailUrl, @CreatedAt, @UpdatedAt);
+                    (@ItemName, @IdCategory, @IsActive, @Price, @Ingredients, @ItemDescription, @CreatedAt, @UpdatedAt);
                     SELECT CAST(SCOPE_IDENTITY() as int);";
 
             int newId = await conn.ExecuteScalarAsync<int>(query, parameter);
+
+            if (newId > 0 && !string.IsNullOrEmpty(menu_Item.ImageUrl))
+            {
+                var imgParam = new DynamicParameters();
+                imgParam.Add("@ReferenceId", newId, DbType.Int32);
+                imgParam.Add("@ImageUrl", menu_Item.ImageUrl, DbType.String);
+                string imgQuery = "INSERT INTO tblItemMasterImage (ReferenceId, ImageUrl, IsMain, CreatedAt) VALUES (@ReferenceId, @ImageUrl, 1, GETDATE())";
+                await conn.ExecuteAsync(imgQuery, imgParam);
+            }
+
             return newId;
         }
-
         #endregion
 
         #region AddDublicateMenuItemDAL
@@ -213,18 +214,18 @@ namespace OFMS_API.DAL.Imple
             {
                 int menuId = itemTO.menuItemId;
                 string newName = itemTO.ProductName ?? "";
-                string columns = "MenuName,ProductName,CategoryId,Status";
-                string selectColumns = "MenuName, @ProductName, CategoryId, Status";
+                string columns = "ItemName,IdCategory,IsActive";
+                string selectColumns = "@ProductName,IdCategory,IsActive";
 
                 if (itemTO.CopyPricingInfo == true)
                 {
-                    columns += ",Price,DiscountPercent";
-                    selectColumns += ",Price,DiscountPercent";
+                    columns += ",Price";
+                    selectColumns += ",Price";
                 }
                 else
                 {
-                    columns += ",Price,DiscountPercent";
-                    selectColumns += ",0,0";
+                    columns += ",Price";
+                    selectColumns += ",0";
                 }
                 if (itemTO.Copyingredients == true)
                 {
@@ -232,18 +233,29 @@ namespace OFMS_API.DAL.Imple
                     selectColumns += ",Ingredients";
                 }
 
-                columns += ",Description,CookingTimeMinutes,ImageUrl,ThumbnailUrl,CreatedAt,UpdatedAt";
-                selectColumns += ",Description,CookingTimeMinutes,ImageUrl,ThumbnailUrl,CreatedAt,UpdatedAt";
+                columns += ",ItemDescription,CreatedAt,UpdatedAt";
+                selectColumns += ",ItemDescription,GETDATE(),GETDATE()";
 
                 string insertquery = $@"
-                                    INSERT INTO menu_items ({columns})
+                                    INSERT INTO tblItemMaster ({columns})
                                     SELECT {selectColumns}
-                                    FROM menu_items
-                                    WHERE MenuItemId = @MenuId";
+                                    FROM tblItemMaster
+                                    WHERE IdItemMaster = @MenuId;
+                                    SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                var result = await conn.ExecuteAsync(insertquery, new { MenuId = menuId, ProductName = newName });
-                return result;
+                int newId = await conn.ExecuteScalarAsync<int>(insertquery, new { MenuId = menuId, ProductName = newName });
 
+                if (newId > 0)
+                {
+                    string copyImgQuery = @"
+                        INSERT INTO tblItemMasterImage (ReferenceId, ImageUrl, IsMain, CreatedAt)
+                        SELECT @NewId, ImageUrl, IsMain, GETDATE()
+                        FROM tblItemMasterImage
+                        WHERE ReferenceId = @MenuId AND IsMain = 1";
+                    await conn.ExecuteAsync(copyImgQuery, new { NewId = newId, MenuId = menuId });
+                }
+
+                return newId > 0 ? 1 : 0;
             }
             catch (Exception)
             {
@@ -261,30 +273,39 @@ namespace OFMS_API.DAL.Imple
         {
             using var conn = new SqlConnection(connq);
             var parameter = new DynamicParameters();
-            parameter.Add("@MenuItemId", menu_Item.MenuItemId, DbType.Int32); // required!
-            parameter.Add("@MenuName", menu_Item.MenuName, DbType.String);
-            parameter.Add("@ProductName", menu_Item.ProductName, DbType.String);
-            parameter.Add("@CategoryId", menu_Item.CategoryId, DbType.Int32);
-            parameter.Add("@Status", menu_Item.Status, DbType.Boolean);
+            parameter.Add("@IdItemMaster", menu_Item.MenuItemId, DbType.Int32);
+            parameter.Add("@ItemName", menu_Item.ProductName ?? menu_Item.MenuName, DbType.String);
+            parameter.Add("@IdCategory", menu_Item.CategoryId, DbType.Int32);
+            parameter.Add("@IsActive", menu_Item.Status, DbType.Boolean);
             parameter.Add("@Price", menu_Item.Price, DbType.Decimal);
-            parameter.Add("@DiscountPercent", menu_Item.DiscountPercent, DbType.Decimal);
             parameter.Add("@Ingredients", menu_Item.Ingredients, DbType.String);
-            parameter.Add("@Description", menu_Item.Description, DbType.String);
-            parameter.Add("@CookingTimeMinutes", menu_Item.CookingTimeMinutes, DbType.Int32);
-            parameter.Add("@ImageUrl", menu_Item.ImageUrl, DbType.String);
-            parameter.Add("@ThumbnailUrl", menu_Item.ThumbnailUrl, DbType.String);
+            parameter.Add("@ItemDescription", menu_Item.Description, DbType.String);
             parameter.Add("@UpdatedAt", DateTime.Now, DbType.DateTime);
 
-            var query = @" UPDATE menu_items SET MenuName = @MenuName, ProductName = @ProductName, CategoryId = @CategoryId,
-                        Status = @Status, Price = @Price, DiscountPercent = @DiscountPercent, Ingredients = @Ingredients, 
-                        Description = @Description, CookingTimeMinutes = @CookingTimeMinutes, ImageUrl = @ImageUrl, ThumbnailUrl = @ThumbnailUrl,
-                        UpdatedAt = @UpdatedAt WHERE MenuItemId = @MenuItemId; ";
+            var query = @" UPDATE tblItemMaster SET ItemName = @ItemName, IdCategory = @IdCategory,
+                        IsActive = @IsActive, Price = @Price, Ingredients = @Ingredients, 
+                        ItemDescription = @ItemDescription, UpdatedAt = @UpdatedAt WHERE IdItemMaster = @IdItemMaster; ";
 
             var rowsAffected = await conn.ExecuteAsync(query, parameter);
+
+            if (rowsAffected > 0 && !string.IsNullOrEmpty(menu_Item.ImageUrl))
+            {
+                string checkImgQuery = "SELECT COUNT(1) FROM tblItemMasterImage WHERE ReferenceId = @IdItemMaster AND IsMain = 1";
+                int imgCount = await conn.ExecuteScalarAsync<int>(checkImgQuery, new { IdItemMaster = menu_Item.MenuItemId });
+                if (imgCount > 0)
+                {
+                    string updateImgQuery = "UPDATE tblItemMasterImage SET ImageUrl = @ImageUrl, UpdatedOn = GETDATE() WHERE ReferenceId = @IdItemMaster AND IsMain = 1";
+                    await conn.ExecuteAsync(updateImgQuery, new { IdItemMaster = menu_Item.MenuItemId, ImageUrl = menu_Item.ImageUrl });
+                }
+                else
+                {
+                    string insertImgQuery = "INSERT INTO tblItemMasterImage (ReferenceId, ImageUrl, IsMain, CreatedAt) VALUES (@IdItemMaster, @ImageUrl, 1, GETDATE())";
+                    await conn.ExecuteAsync(insertImgQuery, new { IdItemMaster = menu_Item.MenuItemId, ImageUrl = menu_Item.ImageUrl });
+                }
+            }
+
             return rowsAffected;
         }
-
-
         #endregion
 
         #endregion
@@ -295,12 +316,13 @@ namespace OFMS_API.DAL.Imple
         public async Task<int> DeleteMenuItemDAL(int menuid)
         {
             using var conn = new SqlConnection(connq);
+            string deleteImg = "DELETE FROM tblItemMasterImage WHERE ReferenceId = @MenuId";
+            await conn.ExecuteAsync(deleteImg, new { MenuId = menuid });
 
-            var sqlquery = "DELETE FROM menu_items WHERE MenuItemId = @MenuItemId";
-            int result = await conn.ExecuteAsync(sqlquery, new { MenuItemId = menuid });
+            var sqlquery = "DELETE FROM tblItemMaster WHERE IdItemMaster = @MenuId";
+            int result = await conn.ExecuteAsync(sqlquery, new { MenuId = menuid });
             return result;
         }
-
         #endregion
 
         #endregion

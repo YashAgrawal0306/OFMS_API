@@ -16,5 +16,9 @@ namespace Repository.DAL.Interface.Master.DeliveryAssignment
         Task<bool> CheckDeliveryBoyExists(int deliveryBoyUserId);
         Task<bool> CheckDuplicateAssignment(int idOrderMaster);
         Task<bool> CheckIfDelivered(int idDeliveryAssignment);
+        Task<bool> AcceptDelivery(ActionDeliveryTO payload);
+        Task<bool> PickUpOrder(ActionDeliveryTO payload);
+        Task<bool> MarkDelivered(ActionDeliveryTO payload);
+        Task<DeliveryDashboardCountsTO> GetDashboardCounts(int deliveryUserId);
     }
 }

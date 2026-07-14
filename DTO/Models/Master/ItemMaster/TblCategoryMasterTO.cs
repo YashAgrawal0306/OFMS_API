@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +21,7 @@ namespace DTO.Models.Master.ItemMaster
         public string? UpdatedByName {  get; set; }
         public int? UpdatedBy { get; set; }
         public string? GroupName { get; set; }
+        public string? ParentCategoryName { get; set; }
     }
 
     public class ViewTblCategoryMasterTO
@@ -57,6 +58,7 @@ namespace DTO.Models.Master.ItemMaster
         public int? UpdatedBy { get; set; }
         public int? totalSubCount { get; set; }
         public string? GroupName { get; set; } 
+        public string? ParentCategoryName { get; set; }
         public List<SubCategoryList>? SubCategoryList { get; set; }
         public int TotalItemCount { get; set; }
         public int TotalActiveItemCount { get; set; }      // ✅ NEW

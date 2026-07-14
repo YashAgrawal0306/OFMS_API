@@ -2,6 +2,7 @@ using Azure;
 using Dapper;
 using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.FilterModel;
 using DTO.Models.Master.ItemMaster.ResponseModel;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -129,6 +130,14 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             return data ?? new TblGroupMasterTO();
         }
 
+        public async Task<TblGroupMasterTO> GetGroupByName(string groupName)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string query = @"SELECT * FROM tblGroupMaster WHERE GroupName = @GroupName";
+            var data = await connection.QueryFirstOrDefaultAsync<TblGroupMasterTO>(query, new { GroupName = groupName });
+            return data;
+        }
+
 
 
 
@@ -218,7 +227,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
         #endregion
 
         #region Category Master
-        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
+        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(CategoryListingFilterTO filterModelTO)
         {
             using var conn = new SqlConnection(_connectionString);
             var output = new OutPutClass<TblCategoryMasterTO>();
@@ -238,13 +247,13 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                     : "OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
 
                 string flagFilter = flag == "1"
-                    ? "AND (ParentId IS NULL OR ParentId = 0)"
+                    ? "AND (TblCategoryMaster.ParentId IS NULL OR TblCategoryMaster.ParentId = 0)"
                     : flag == "2"
-                        ? "AND (ParentId IS NOT NULL and ParentId <> 0)"
+                        ? "AND (TblCategoryMaster.ParentId IS NOT NULL and TblCategoryMaster.ParentId <> 0)"
                         : "";
 
                 string query = $@"
-                      SELECT IdCategory,
+                      SELECT TblCategoryMaster.IdCategory,
                              TblCategoryMaster.IdGroupMaster,
                              TblCategoryMaster.ParentId,
                              TblCategoryMaster.CategoryName,
@@ -256,23 +265,27 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                              TblCategoryMaster.UpdatedBy,
                              CreatedByName.username AS CreatedByName,
                              UpdatedByName.username AS UpdatedByName,
-                             tblGroupMaster.GroupName AS GroupName
+                             tblGroupMaster.GroupName AS GroupName,
+                             ParentCat.CategoryName AS ParentCategoryName
                       FROM   TblCategoryMaster TblCategoryMaster
                       LEFT JOIN tbluser CreatedByName ON tblCategoryMaster.CreatedBy = CreatedByName.userid
                       LEFT JOIN tbluser UpdatedByName ON tblCategoryMaster.UpdatedBy = UpdatedByName.userid
                      LEFT JOIN tblGroupMaster tblGroupMaster ON tblGroupMaster.idGroupMaster = TblCategoryMaster.IdGroupMaster
+                     LEFT JOIN TblCategoryMaster ParentCat ON ParentCat.IdCategory = TblCategoryMaster.ParentId
                       WHERE  TblCategoryMaster.IsActive = @IsActive
-                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
-                    AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
+                    AND    (@CategoryId = 0 OR TblCategoryMaster.IdCategory = @CategoryId)
+                    AND (@IdGroupMasters =0 OR TblCategoryMaster.IdGroupMaster = @IdGroupMasters)
+                    AND    (@SearchText = '' OR TblCategoryMaster.CategoryName LIKE '%' + @SearchText + '%')
                     {flagFilter}
-                    ORDER  BY IdCategory ASC
+                    ORDER  BY TblCategoryMaster.IdCategory ASC
                     {pagination}
 
                     SELECT COUNT(*)
                     FROM   TblCategoryMaster
                     WHERE  IsActive = @IsActive
-                    AND    (@CategoryId = 0 OR IdCategory = @CategoryId)
-                    AND    (@SearchText = '' OR CategoryName LIKE '%' + @SearchText + '%')
+                    AND    (@CategoryId = 0 OR TblCategoryMaster.IdCategory = @CategoryId)
+                    AND    (@IdGroupMasters = 0 OR TblCategoryMaster.IdGroupMaster = @IdGroupMasters)
+                    AND    (@SearchText = '' OR TblCategoryMaster.CategoryName LIKE '%' + @SearchText + '%')
                     {flagFilter};";
 
                 var parameters = new DynamicParameters();
@@ -281,6 +294,7 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 parameters.Add("@SearchText", search);
                 parameters.Add("@Offset", offset);
                 parameters.Add("@PageSize", pageSize);
+                parameters.Add("@IdGroupMasters", filterModelTO.IdGroupMasters ?? 0);
 
                 var result = await conn.QueryMultipleAsync(query, parameters);
                 output.List = (await result.ReadAsync<TblCategoryMasterTO>()).ToList();
@@ -410,6 +424,17 @@ namespace Repository.DAL.Imple.Master.ItemMaster
             {
                 throw;
             }
+        }
+
+        public async Task<TblCategoryMasterTO> GetCategoryByName(string categoryName, int idGroup, int? parentId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string query = @"SELECT * FROM TblCategoryMaster 
+                             WHERE CategoryName = @CategoryName 
+                               AND IdGroupMaster = @IdGroupMaster 
+                               AND (ParentId = @ParentId OR (ParentId IS NULL AND @ParentId IS NULL) OR (ParentId = 0 AND @ParentId = 0))";
+            var data = await connection.QueryFirstOrDefaultAsync<TblCategoryMasterTO>(query, new { CategoryName = categoryName, IdGroupMaster = idGroup, ParentId = parentId });
+            return data;
         }
         #endregion
 
@@ -606,6 +631,17 @@ namespace Repository.DAL.Imple.Master.ItemMaster
                 throw;
             }
         }
+
+        public async Task<TblItemMasterTO> GetItemByName(string itemName, int idSubCategory)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string query = @"SELECT * FROM tblItemMaster 
+                             WHERE ItemName = @ItemName 
+                               AND IdCategory = @IdCategory";
+            var data = await connection.QueryFirstOrDefaultAsync<TblItemMasterTO>(query, new { ItemName = itemName, IdCategory = idSubCategory });
+            return data;
+        }
+
         public async Task<int> UpdateItemMaster(TblItemMasterTO model)
         {
             using var conn = new SqlConnection(_connectionString);

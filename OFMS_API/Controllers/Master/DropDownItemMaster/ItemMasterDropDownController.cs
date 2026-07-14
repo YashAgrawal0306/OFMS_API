@@ -1,4 +1,4 @@
-﻿using DTO.Models.CommonModel;
+using DTO.Models.CommonModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +8,7 @@ namespace OFMS_API.Controllers.Master.DropDownItemMaster
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class ItemMasterDropDownController : ControllerBase
     {
         private readonly IItemMasterDropDownBL _itemMasterDropDownBL;

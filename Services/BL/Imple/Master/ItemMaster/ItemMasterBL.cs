@@ -1,16 +1,21 @@
 using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.FilterModel;
 using DTO.Models.Master.ItemMaster.ResponseModel;
+using OFMS_API.Helper.Common;
 using Repository.DAL.Interface.Master.ImageMaster;
 using Repository.DAL.Interface.Master.ItemMaster;
 using Services.BL.Interface.Master.ImageMaster;
 using Services.BL.Interface.Master.ItemMaster;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Helper.Helper.Common.Enums;
+using ClosedXML.Excel;
+using Microsoft.AspNetCore.Http;
 
 namespace Services.BL.Imple.Master.ItemMaster
 {
@@ -156,39 +161,38 @@ namespace Services.BL.Imple.Master.ItemMaster
         #endregion
 
         #region CategoryMaster
-        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO)
+        public async Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(CategoryListingFilterTO filterModelTO)
         {
 
             return await _itemMasterDAL.GetListOfCategoryMaster(filterModelTO);
         }
-        public async Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO)
+        public async Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(CategoryListingFilterTO filterModelTO)
         {
             var output = new OutPutClass<CategoryWithSubCategoryListTO>();
             string flag = filterModelTO.Flag ?? "1";
-
-            // ─────────────────────────────────────────
-            // FLAG = "1" → Category + SubCategory List
-            // ─────────────────────────────────────────
+             
             if (flag == "1")
             {
-                var parentFilter = new FilterModelTO
+                var parentFilter = new CategoryListingFilterTO
                 {
                     PageNo = filterModelTO.PageNo,
                     PageSize = filterModelTO.PageSize,
                     SearchText = filterModelTO.SearchText,
                     isActive = filterModelTO.isActive,
                     CategoryId = filterModelTO.CategoryId,
+                    IdGroupMasters = filterModelTO.IdGroupMasters,
                     Flag = "1"
                 };
 
-                var subFilter = new FilterModelTO
+                var subFilter = new CategoryListingFilterTO
                 {
                     PageNo = 0,
                     PageSize = 0,
                     isActive = filterModelTO.isActive,
+                    IdGroupMasters = filterModelTO.IdGroupMasters,
                     Flag = "2"
                 };
-
+                    
                 var parentResult = await _itemMasterDAL.GetListOfCategoryMaster(parentFilter);
                 var subResult = await _itemMasterDAL.GetListOfCategoryMaster(subFilter);
 
@@ -228,22 +232,24 @@ namespace Services.BL.Imple.Master.ItemMaster
 
             else if (flag == "2")
             {
-                var subCatFilter = new FilterModelTO
+                var subCatFilter = new CategoryListingFilterTO
                 {
                     PageNo = filterModelTO.PageNo,
                     PageSize = filterModelTO.PageSize,
                     SearchText = filterModelTO.SearchText,
                     isActive = filterModelTO.isActive,
                     CategoryId = filterModelTO.CategoryId, // optional: filter by parent category
+                    IdGroupMasters = filterModelTO.IdGroupMasters,
                     Flag = "2"
                 };
 
                 // 2️⃣ Fetch ALL items at once (no pagination) then group in memory
-                var itemFilter = new FilterModelTO
+                var itemFilter = new CategoryListingFilterTO
                 {
                     PageNo = 0,
                     PageSize = 0,
                     isActive = filterModelTO.isActive,
+                    IdGroupMasters = filterModelTO.IdGroupMasters,
                     CategoryId = 0
                 };
 
@@ -275,6 +281,7 @@ namespace Services.BL.Imple.Master.ItemMaster
                         UpdatedAt = sub.UpdatedAt,
                         UpdatedBy = sub.UpdatedBy,
                         GroupName = sub.GroupName,
+                        ParentCategoryName = sub.ParentCategoryName,
                         TotalItemCount = items.Count(),
                         TotalActiveItemCount = items.Count(i => i.IsActive),
                         TotalInActiveItemCount = items.Count(i => !i.IsActive),
@@ -388,7 +395,7 @@ namespace Services.BL.Imple.Master.ItemMaster
             bool isParent = data.ParentId == null || data.ParentId == 0;
             if (isParent)
             {
-                var subFilter = new FilterModelTO
+                var subFilter = new CategoryListingFilterTO
                 {
                     PageNo = 0,
                     PageSize = 0,
@@ -551,6 +558,135 @@ namespace Services.BL.Imple.Master.ItemMaster
             }
 
             return resultMessage;
+        }
+        #endregion
+
+        #region Excel Import/Export
+        public async Task<byte[]> DownloadImportTemplate()
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("ItemTemplate");
+                var currentRow = 1;
+
+                worksheet.Cell(currentRow, 1).Value = "GroupName";
+                worksheet.Cell(currentRow, 2).Value = "CategoryName";
+                worksheet.Cell(currentRow, 3).Value = "SubCategoryName";
+                worksheet.Cell(currentRow, 4).Value = "ItemName";
+                worksheet.Cell(currentRow, 5).Value = "ItemDescription";
+                worksheet.Cell(currentRow, 6).Value = "Price";
+                worksheet.Cell(currentRow, 7).Value = "Quantity";
+                worksheet.Cell(currentRow, 8).Value = "Ingredients";
+
+                worksheet.Row(1).Style.Font.Bold = true;
+                worksheet.Columns().AdjustToContents();
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        public async Task<GlobalResponseModel<string>> ImportItems(IFormFile excelFile, int createdBy)
+        {
+            var response = new GlobalResponseModel<string> { statusCode = 200, status = "Success" };
+            if (excelFile == null || excelFile.Length == 0)
+            {
+                response.statusCode = 400; response.message = "File is empty or null"; response.status = "Error"; return response;
+            }
+
+            int itemsAdded = 0;
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    await excelFile.CopyToAsync(stream);
+                    using (var workbook = new XLWorkbook(stream))
+                    {
+                        var worksheet = workbook.Worksheet(1);
+                        var rowCount = worksheet.LastRowUsed()?.RowNumber() ?? 0;
+
+                        // Start from row 2 (skip header)
+                        for (int i = 2; i <= rowCount; i++)
+                        {
+                            var groupName = worksheet.Cell(i, 1).GetValue<string>()?.Trim();
+                            var catName = worksheet.Cell(i, 2).GetValue<string>()?.Trim();
+                            var subCatName = worksheet.Cell(i, 3).GetValue<string>()?.Trim();
+                            var itemName = worksheet.Cell(i, 4).GetValue<string>()?.Trim();
+                            
+                            if (string.IsNullOrEmpty(groupName) || string.IsNullOrEmpty(itemName)) continue; // skip invalid rows
+
+                            // 1. Group
+                            var group = await _itemMasterDAL.GetGroupByName(groupName);
+                            int groupId;
+                            if (group == null || group.IdGroupMaster == 0)
+                            {
+                                groupId = await _itemMasterDAL.AddGroupMaster(new TblGroupMasterTO { GroupName = groupName, Description = groupName, IsActive = true, CreatedBy = createdBy });
+                            }
+                            else { groupId = group.IdGroupMaster; }
+
+                            // 2. Category
+                            int categoryId = 0;
+                            if (!string.IsNullOrEmpty(catName))
+                            {
+                                var cat = await _itemMasterDAL.GetCategoryByName(catName, groupId, 0); // parentId 0 for category
+                                if (cat == null || cat.IdCategory == 0)
+                                {
+                                    categoryId = await _itemMasterDAL.AddCategoryMaster(new TblCategoryMasterTO { CategoryName = catName, IdGroupMaster = groupId, ParentId = 0, IsActive = true, CreatedBy = createdBy, CreatedAt = DateTime.UtcNow });
+                                }
+                                else { categoryId = cat.IdCategory; }
+                            }
+
+                            // 3. SubCategory
+                            int subCatId = 0;
+                            if (!string.IsNullOrEmpty(subCatName) && categoryId > 0)
+                            {
+                                var subCat = await _itemMasterDAL.GetCategoryByName(subCatName, groupId, categoryId);
+                                if (subCat == null || subCat.IdCategory == 0)
+                                {
+                                    subCatId = await _itemMasterDAL.AddCategoryMaster(new TblCategoryMasterTO { CategoryName = subCatName, IdGroupMaster = groupId, ParentId = categoryId, IsActive = true, CreatedBy = createdBy, CreatedAt = DateTime.UtcNow });
+                                }
+                                else { subCatId = subCat.IdCategory; }
+                            }
+                            else if (categoryId > 0) { subCatId = categoryId; } // fallback if no subcat
+
+                            // 4. Item
+                            if (subCatId > 0)
+                            {
+                                var item = await _itemMasterDAL.GetItemByName(itemName, subCatId);
+                                if (item == null || item.IdItemMaster == 0)
+                                {
+                                    var itemDto = new TblItemMasterTO
+                                    {
+                                        IdGroupMaster = groupId,
+                                        IdCategory = categoryId > 0 ? categoryId : subCatId,
+                                        IdSubCategory = subCatId,
+                                        ItemName = itemName,
+                                        ItemDescription = worksheet.Cell(i, 5).GetValue<string>()?.Trim(),
+                                        Price = worksheet.Cell(i, 6).GetValue<decimal?>() ?? 0,
+                                        Quantity = (int)(worksheet.Cell(i, 7).GetValue<decimal?>() ?? 0),
+                                        Ingredients = worksheet.Cell(i, 8).GetValue<string>()?.Trim(),
+                                        IsActive = true,
+                                        CreatedBy = createdBy
+                                    };
+                                    await _itemMasterDAL.AddItemMaster(itemDto);
+                                    itemsAdded++;
+                                }
+                            }
+                        }
+                    }
+                }
+                response.message = $"Successfully imported {itemsAdded} new items.";
+            }
+            catch (Exception ex)
+            {
+                response.statusCode = 500;
+                response.status = "Error";
+                response.message = "Error during import: " + ex.Message;
+            }
+            return response;
         }
         #endregion
 

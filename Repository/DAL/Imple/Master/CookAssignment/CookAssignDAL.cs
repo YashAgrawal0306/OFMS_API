@@ -103,6 +103,7 @@ namespace Repository.DAL.Imple.Master.CookAssignment
         SELECT 
             c.IdCookAssignment,
             c.IdOrderMaster,
+            c.IdOrderDetails,
             o.OrderNo, 
             c.CookUserId,
             u.UserName AS CookName,

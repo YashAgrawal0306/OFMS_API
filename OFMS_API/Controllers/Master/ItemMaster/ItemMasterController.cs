@@ -1,5 +1,6 @@
-﻿using DTO.Models.CommonModel;
+using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.FilterModel;
 using DTO.Models.Master.ItemMaster.ResponseModel;
 using Microsoft.AspNetCore.Mvc;
 using OFMS_API.Models;
@@ -318,7 +319,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
 
 
         [HttpPost("GetCategoryMaster")]
-        public async Task<IActionResult> GetCategoryMaster([FromBody] FilterModelTO filter)
+        public async Task<IActionResult> GetCategoryMaster([FromBody] CategoryListingFilterTO filter)
         {
             var response = new GlobalResponseModel<List<TblCategoryMasterTO>>
             {
@@ -373,7 +374,7 @@ namespace OFMS_API.Controllers.Master.ItemMaster
 
 
         [HttpPost("GetCategoryWithSubCategoryList")]
-        public async Task<IActionResult> GetCategoryWithSubCategoryList([FromBody] FilterModelTO filter)
+        public async Task<IActionResult> GetCategoryWithSubCategoryList([FromBody] CategoryListingFilterTO filter)
         {
             var response = new GlobalResponseModel<List<CategoryWithSubCategoryListTO>>
             {
@@ -857,6 +858,45 @@ namespace OFMS_API.Controllers.Master.ItemMaster
                 response.status = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+        #endregion
+
+        #region Excel Import/Export
+        [HttpGet("DownloadImportTemplate")]
+        public async Task<IActionResult> DownloadImportTemplate()
+        {
+            try
+            {
+                var bytes = await _IItemMasterBL.DownloadImportTemplate();
+                return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ItemMasterTemplate.xlsx");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost("ImportItems")]
+        public async Task<IActionResult> ImportItems(IFormFile file)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst("userId");
+                int? userId = userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
+
+                if (userId == null || userId == 0)
+                {
+                    return Unauthorized(new GlobalResponseModel<string> { status = "Fail", message = "Unauthorized user", statusCode = 401 });
+                }
+
+                var response = await _IItemMasterBL.ImportItems(file, userId.Value);
+                if (response.statusCode == 200) return Ok(response);
+                return BadRequest(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new GlobalResponseModel<string> { status = "Error", message = ex.Message, statusCode = 500 });
             }
         }
         #endregion

@@ -239,5 +239,74 @@ namespace Repository.DAL.Imple.Master.DeliveryAssignment
                 AND IdStatus = (SELECT TOP 1 IdStatus FROM dimStatus WHERE StatusName = 'Delivered')";
             return await conn.ExecuteScalarAsync<int>(sql, new { IdDeliveryAssignment = idDeliveryAssignment }) > 0;
         }
+
+        public async Task<bool> AcceptDelivery(ActionDeliveryTO payload)
+        {
+            using var conn = new SqlConnection(connq);
+            string sql = @"
+                UPDATE tblDeliveryAssignment 
+                SET IdStatus = 12, AcceptedOn = GETDATE(), UpdatedOn = GETDATE(), UpdatedBy = @UpdatedBy
+                WHERE IdDeliveryAssignment = @IdDeliveryAssignment;
+            ";
+            int rows = await conn.ExecuteAsync(sql, payload);
+            return rows > 0;
+        }
+
+        public async Task<bool> PickUpOrder(ActionDeliveryTO payload)
+        {
+            using var conn = new SqlConnection(connq);
+            string sql = @"
+                UPDATE tblDeliveryAssignment 
+                SET IdStatus = 13, PickedUpOn = GETDATE(), UpdatedOn = GETDATE(), UpdatedBy = @UpdatedBy
+                WHERE IdDeliveryAssignment = @IdDeliveryAssignment;
+                
+                -- Update order master as well
+                UPDATE tblOrderMaster
+                SET IdStatus = 13
+                WHERE IdOrderMaster = (SELECT IdOrderMaster FROM tblDeliveryAssignment WHERE IdDeliveryAssignment = @IdDeliveryAssignment);
+            ";
+            int rows = await conn.ExecuteAsync(sql, payload);
+            return rows > 0;
+        }
+
+        public async Task<bool> MarkDelivered(ActionDeliveryTO payload)
+        {
+            using var conn = new SqlConnection(connq);
+            string sql = @"
+                UPDATE tblDeliveryAssignment 
+                SET IdStatus = 14, DeliveredOn = GETDATE(), UpdatedOn = GETDATE(), UpdatedBy = @UpdatedBy
+                WHERE IdDeliveryAssignment = @IdDeliveryAssignment;
+                
+                -- Update order master as well
+                UPDATE tblOrderMaster
+                SET IdStatus = 14
+                WHERE IdOrderMaster = (SELECT IdOrderMaster FROM tblDeliveryAssignment WHERE IdDeliveryAssignment = @IdDeliveryAssignment);
+            ";
+            int rows = await conn.ExecuteAsync(sql, payload);
+            return rows > 0;
+        }
+
+        public async Task<DeliveryDashboardCountsTO> GetDashboardCounts(int deliveryUserId)
+        {
+            using var conn = new SqlConnection(connq);
+            string sql = @"
+                SELECT 
+                    ISNULL(SUM(CASE WHEN IdStatus = 12 THEN 1 ELSE 0 END), 0) AS AssignedOrders,
+                    ISNULL(SUM(CASE WHEN IdStatus = 14 THEN 1 ELSE 0 END), 0) AS PickedUpOrders,
+                    ISNULL(SUM(CASE WHEN IdStatus = 15 AND CONVERT(date, DeliveredOn) = CONVERT(date, GETDATE()) THEN 1 ELSE 0 END), 0) AS DeliveredToday,
+                    ISNULL(SUM(CASE WHEN IdStatus IN (12, 13, 14) THEN 1 ELSE 0 END), 0) AS PendingOrders,
+
+                    ISNULL(COUNT(1), 0) AS TotalAssigned,
+                    ISNULL(SUM(CASE WHEN IdStatus = 12 THEN 1 ELSE 0 END), 0) AS PendingDeliveries,
+                    ISNULL(SUM(CASE WHEN IdStatus = 13 THEN 1 ELSE 0 END), 0) AS AcceptedDeliveries,
+                    ISNULL(SUM(CASE WHEN IdStatus = 14 THEN 1 ELSE 0 END), 0) AS PickedUpDeliveries,
+                    ISNULL(SUM(CASE WHEN IdStatus = 14 THEN 1 ELSE 0 END), 0) AS OutForDelivery,
+                    ISNULL(SUM(CASE WHEN IdStatus = 18 THEN 1 ELSE 0 END), 0) AS FailedDeliveries
+                FROM tblDeliveryAssignment
+                WHERE DeliveryBoyUserId = @DeliveryBoyUserId AND IsActive = 1
+            ";
+            var counts = await conn.QueryFirstOrDefaultAsync<DeliveryDashboardCountsTO>(sql, new { DeliveryBoyUserId = deliveryUserId });
+            return counts ?? new DeliveryDashboardCountsTO();
+        }
     }
 }

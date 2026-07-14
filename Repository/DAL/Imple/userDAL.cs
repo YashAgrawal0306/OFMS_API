@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using DTO.Models.CommonModel;
 using DTO.Models.Master.UserMaster;
 using Microsoft.Data.SqlClient;
@@ -116,16 +116,25 @@ namespace OFMS_API.DAL.Imple
                 int offset = (pageNo - 1) * pageSize;
 
                 var sqlquery = new StringBuilder();
-                sqlquery.Append("SELECT  UserId, UserName, UserEmail, Phone_Number, Profile_Image, Date_Of_Birth,Created_At, Updated_At, IsActive FROM tbluser");
+                sqlquery.Append(@"
+                    SELECT u.UserId, u.UserName, u.UserEmail, u.Phone_Number, u.Profile_Image, 
+                           u.Date_Of_Birth, u.Created_At, u.Updated_At, u.IsActive,
+                           r.RoleId, r.RoleName 
+                    FROM tbluser u
+                    LEFT JOIN tblUserRoleMapping m ON u.userid = m.UserId
+                    LEFT JOIN tblroles r ON m.RoleId = r.RoleId
+                    WHERE 1=1");
 
                 if (!string.IsNullOrEmpty(filter.SearchText))
                 {
-                    sqlquery.Append(" AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)");
+                    sqlquery.Append(" AND (u.UserName LIKE @Search OR u.UserEmail LIKE @Search OR u.Phone_Number LIKE @Search OR r.RoleName LIKE @Search)");
                 }
 
-
-
-                string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "UserId" : filter.SortColumn;
+                string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "u.UserId" : filter.SortColumn;
+                // Avoid ambiguous column names if sorting by UserId etc
+                if (!sortColumn.Contains(".")) {
+                    sortColumn = "u." + sortColumn;
+                }
                 string sortOrder = string.IsNullOrEmpty(filter.SortOrder) ? "ASC" : filter.SortOrder.ToUpper();
                 sqlquery.Append($" ORDER BY {sortColumn} {sortOrder}");
 
@@ -148,17 +157,22 @@ namespace OFMS_API.DAL.Imple
                     Date_Of_Birth = x.Date_Of_Birth,
                     Created_At = x.Created_At,
                     Updated_At = x.Updated_At,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    RoleId = x.RoleId,
+                    RoleName = x.RoleName
                 }).ToList();
 
-                var countQuery = new StringBuilder("SELECT COUNT(*) FROM tbluser");
+                var countQuery = new StringBuilder(@"
+                    SELECT COUNT(*) 
+                    FROM tbluser u
+                    LEFT JOIN tblUserRoleMapping m ON u.userid = m.UserId
+                    LEFT JOIN tblroles r ON m.RoleId = r.RoleId
+                    WHERE 1=1");
 
                 if (!string.IsNullOrEmpty(filter.SearchText))
                 {
-                    countQuery.Append(" AND (UserName LIKE @Search OR UserEmail LIKE @Search OR Phone_Number LIKE @Search)");
+                    countQuery.Append(" AND (u.UserName LIKE @Search OR u.UserEmail LIKE @Search OR u.Phone_Number LIKE @Search OR r.RoleName LIKE @Search)");
                 }
-
-
 
                 int total = await conn.ExecuteScalarAsync<int>(countQuery.ToString(), new
                 {
@@ -195,6 +209,66 @@ namespace OFMS_API.DAL.Imple
                 return 0;
             }
         }
+
+        /// <summary>
+        /// Inserts a new address into tblAddress and creates the mapping in tblAddressMapping.
+        /// EntityType = 'CUSTOMER' if RoleId == 6, otherwise 'EMPLOYEE'.
+        /// Latitude and Longitude are left NULL (handled server-side, not exposed to frontend).
+        /// </summary>
+        public async Task<int> AddAddressWithMappingDAL(int userId, TblUserWithAddressTO model, SqlConnection conn, SqlTransaction tran)
+        {
+            // 1. Insert into tblAddress
+            var addrParams = new DynamicParameters();
+            addrParams.Add("@AddressLine1", model.AddressLine1, DbType.String);
+            addrParams.Add("@AddressLine2", model.AddressLine2, DbType.String);
+            addrParams.Add("@Landmark", model.Landmark, DbType.String);
+            addrParams.Add("@Area", model.Area, DbType.String);
+            addrParams.Add("@Locality", model.Locality, DbType.String);
+            addrParams.Add("@IdCity", model.IdCity, DbType.Int32);
+            addrParams.Add("@IdState", model.IdState, DbType.Int32);
+            addrParams.Add("@IdCountry", model.IdCountry, DbType.Int32);
+            addrParams.Add("@Pincode", model.Pincode, DbType.String);
+            addrParams.Add("@Latitude", (object?)null, DbType.Decimal);
+            addrParams.Add("@Longitude", (object?)null, DbType.Decimal);
+            addrParams.Add("@IsActive", true, DbType.Boolean);
+            addrParams.Add("@CreatedOn", DateTime.Now, DbType.DateTime);
+            addrParams.Add("@CreatedBy", userId, DbType.Int32);
+
+            string addrSql = @"INSERT INTO tblAddress
+                (AddressLine1, AddressLine2, Landmark, Area, Locality, IdCity, IdState, IdCountry,
+                 Pincode, Latitude, Longitude, IsActive, CreatedOn, CreatedBy)
+                VALUES
+                (@AddressLine1, @AddressLine2, @Landmark, @Area, @Locality, @IdCity, @IdState, @IdCountry,
+                 @Pincode, @Latitude, @Longitude, @IsActive, @CreatedOn, @CreatedBy);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            int idAddress = await conn.QuerySingleOrDefaultAsync<int>(addrSql, addrParams, transaction: tran);
+            if (idAddress <= 0) return 0;
+
+            // 2. Insert into tblAddressMapping
+            // EntityType: CUSTOMER for RoleId=6, otherwise EMPLOYEE
+            string entityType = (model.RoleId == 6) ? "CUSTOMER" : "EMPLOYEE";
+
+            var mapParams = new DynamicParameters();
+            mapParams.Add("@EntityType", entityType, DbType.String);
+            mapParams.Add("@EntityId", userId, DbType.Int32);
+            mapParams.Add("@IdAddress", idAddress, DbType.Int32);
+            mapParams.Add("@IdAddressType", model.IdAddressType ?? 1, DbType.Int32);  // default: Home
+            mapParams.Add("@IsDefault", model.IsDefaultAddress, DbType.Boolean);
+            mapParams.Add("@IsActive", true, DbType.Boolean);
+            mapParams.Add("@CreatedOn", DateTime.Now, DbType.DateTime);
+            mapParams.Add("@CreatedBy", userId, DbType.Int32);
+
+            string mapSql = @"INSERT INTO tblAddressMapping
+                (EntityType, EntityId, IdAddress, IdAddressType, IsDefault, IsActive, CreatedOn, CreatedBy)
+                VALUES
+                (@EntityType, @EntityId, @IdAddress, @IdAddressType, @IsDefault, @IsActive, @CreatedOn, @CreatedBy);
+                SELECT CAST(SCOPE_IDENTITY() AS INT);";
+
+            int mappingId = await conn.QuerySingleOrDefaultAsync<int>(mapSql, mapParams, transaction: tran);
+            return mappingId;
+        }
+
         public async Task<int> AddNewCustomerDAL(TblUserTO customer, SqlConnection conn, SqlTransaction tran)
         {
             try
@@ -274,7 +348,7 @@ namespace OFMS_API.DAL.Imple
         UserEmail = @UserEmail,
         Phone_Number = @Phone_Number,
         Date_Of_Birth = @Date_Of_Birth,
-        Profile_Image = @Profile_Image,
+        " + (!string.IsNullOrEmpty(path) ? "Profile_Image = @Profile_Image," : "") + @"
         IsActive = @IsActive,
         Updated_At = @Updated_At
     WHERE UserId = @UserId";
@@ -292,7 +366,12 @@ namespace OFMS_API.DAL.Imple
             byte[] hashBytes = sha256.ComputeHash(bytes);
             string hashedPassword = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
 
-            string sql = "SELECT * FROM tbluser WHERE useremail = @Email AND Password = @Password";
+            // Authenticate user AND fetch their actual role from tblUserRoleMapping
+            string sql = @"
+                SELECT u.*, ISNULL(m.RoleId, 0) AS RoleId
+                FROM tbluser u
+                LEFT JOIN tblUserRoleMapping m ON u.userid = m.UserId
+                WHERE u.useremail = @Email AND u.Password = @Password";
             var user = await conn.QueryFirstOrDefaultAsync<TblUserTO>(
                 sql,
                 new { Email = tbluserlogin.Email, Password = hashedPassword }
@@ -300,7 +379,8 @@ namespace OFMS_API.DAL.Imple
 
             if (user != null)
             {
-                string token = await GenerateToken(user);
+                // Use the actual DB role, NOT whatever frontend sent
+                string token = await GenerateToken(user, user.RoleId ?? 0);
                 return token;
             }
             else
@@ -323,7 +403,7 @@ namespace OFMS_API.DAL.Imple
             }).ToList();
         }
 
-        private async Task<string> GenerateToken(TblUserTO tbluserlogin)
+        private async Task<string> GenerateToken(TblUserTO tbluserlogin, int roleId)
         {
             var jwtkey = _config["Jwt:Key"] ?? "";
             var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtkey));
@@ -331,7 +411,7 @@ namespace OFMS_API.DAL.Imple
             var claims = new[]
             {
                 new Claim("userId",tbluserlogin.UserId.ToString()),
-                new Claim("roleId",tbluserlogin.RoleId.ToString())
+                new Claim("roleId",roleId.ToString())
             };
             var gettoken = new JwtSecurityToken(_config["Jwt:Issuer"],
                 _config["Jwt:Issuer"],

@@ -192,36 +192,69 @@ namespace OFMS_API.Controllers.Master.DeliveryAssignment
         }
 
         [HttpPost("MarkDelivered")]
-        public async Task<IActionResult> MarkDelivered([FromBody] ActionDeliveryTO model)
+        public async Task<IActionResult> MarkDelivered([FromBody] ActionDeliveryTO payload)
         {
-            var response = new GlobalResponseModel<int>
+            var response = new GlobalResponseModel<bool>
             {
-                message = "Delivery status updated successfully",
+                message = "Order marked as delivered successfully",
                 statusCode = StatusCodes.Status200OK,
-                status = "Success"
+                data = false
             };
-
             try
             {
-                int result = await _bl.MarkDelivered(model.IdDeliveryAssignment, model.UpdatedBy);
-                if (result <= 0)
+                if (payload == null || payload.IdDeliveryAssignment <= 0)
                 {
-                    response.message = "Failed to update status";
-                    response.statusCode = StatusCodes.Status400BadRequest;
-                    response.status = "Failed";
+                    return BadRequest("Invalid payload.");
+                }
+
+                // Actually we defined it as receiving an int and updatedBy in BL, let's call it:
+                int result = await _bl.MarkDelivered(payload.IdDeliveryAssignment, payload.UpdatedBy);
+                if (result > 0)
+                {
+                    response.data = true;
                 }
                 else
                 {
-                    response.data = result;
+                    response.statusCode = StatusCodes.Status400BadRequest;
+                    response.message = "Failed to mark order as delivered.";
                 }
             }
             catch (Exception ex)
             {
-                response.message = ex.Message;
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.status = "Failed";
+                response.message = ex.Message;
             }
+            return Ok(response);
+        }
 
+        [HttpGet("Dashboard")]
+        public async Task<IActionResult> GetDashboardCounts()
+        {
+            var response = new GlobalResponseModel<DeliveryDashboardCountsTO>
+            {
+                message = "Dashboard counts fetched successfully",
+                statusCode = StatusCodes.Status200OK
+            };
+            try
+            {
+                var roleIdClaim = User.FindFirst("roleId")?.Value ?? User.FindFirst("RoleId")?.Value;
+                if (roleIdClaim != "4")
+                {
+                    return Unauthorized("Only Delivery Boy can view this dashboard.");
+                }
+                int deliveryBoyId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
+                if (deliveryBoyId <= 0)
+                {
+                    return Unauthorized();
+                }
+
+                response.data = await _bl.GetDashboardCounts(deliveryBoyId);
+            }
+            catch (Exception ex)
+            {
+                response.statusCode = StatusCodes.Status500InternalServerError;
+                response.message = ex.Message;
+            }
             return Ok(response);
         }
     }

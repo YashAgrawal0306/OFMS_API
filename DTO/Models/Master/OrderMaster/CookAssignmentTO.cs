@@ -78,6 +78,8 @@ namespace DTO.Models.Master.OrderMaster
 
         public int IdOrderMaster { get; set; }
 
+        public int? IdOrderDetails { get; set; }
+
         public string? OrderNo { get; set; }
 
         public int CookUserId { get; set; }

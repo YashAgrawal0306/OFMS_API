@@ -41,9 +41,11 @@ namespace OFMS_API.DAL.Imple
                             );
                             SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
+                // Use temporary order number during insert
+                string tempOrderNo = "TEMP-" + Guid.NewGuid().ToString().Substring(0, 8);
                 int newId = conn.QuerySingle<int>(insertHeaderSql, new
                 {
-                    order.OrderNo,
+                    OrderNo = tempOrderNo,
                     order.CustomerId,
                     order.IdStatus,
                     order.SubTotal,
@@ -55,6 +57,33 @@ namespace OFMS_API.DAL.Imple
                     order.IdAddressMapping,
                     order.CreatedBy
                 }, transaction: tran);
+
+                // Fetch group prefix for the first item
+                string groupPrefix = "ORD";
+                if (order.OrderItems != null && order.OrderItems.Any())
+                {
+                    int firstItemId = order.OrderItems.First().IdItemMaster;
+                    string fetchGroupSql = @"
+                        SELECT TOP 1 G.GroupName 
+                        FROM tblItemMaster I
+                        INNER JOIN tblGroupMaster G ON I.IdGroupMaster = G.IdGroupMaster
+                        WHERE I.IdItemMaster = @ItemId";
+                    
+                    var name = await conn.QueryFirstOrDefaultAsync<string>(fetchGroupSql, new { ItemId = firstItemId }, transaction: tran);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        string trimmed = name.Trim();
+                        groupPrefix = trimmed.Length >= 3 ? trimmed.Substring(0, 3).ToUpper() : trimmed.ToUpper();
+                    }
+                }
+
+                // Generate unique OrderNo using Group Prefix and new order ID
+                string generatedOrderNo = $"{groupPrefix}-{newId}";
+                order.OrderNo = generatedOrderNo;
+
+                // Update database row with the generated OrderNo
+                const string updateOrderNoSql = "UPDATE tblOrderMaster SET OrderNo = @OrderNo WHERE IdOrderMaster = @IdOrderMaster;";
+                await conn.ExecuteAsync(updateOrderNoSql, new { OrderNo = generatedOrderNo, IdOrderMaster = newId }, transaction: tran);
 
                 if (order.OrderItems != null && order.OrderItems.Any())
                 {
@@ -198,7 +227,8 @@ namespace OFMS_API.DAL.Imple
             (@OrderNo IS NULL OR OM.OrderNo LIKE '%' + @OrderNo + '%')
             AND (OM.IdStatus in @orderStatus)
             AND (@CustomerName IS NULL OR U.UserName LIKE '%' + @CustomerName + '%')
-            AND (@IsActive IS NULL OR OM.IsActive = @IsActive) AND OM.CreatedOn BETWEEN @FromDate AND @ToDate
+            AND (@IsActive IS NULL OR OM.IsActive = @IsActive) 
+            AND (@SkipDateFilter = 1 OR OM.CreatedOn BETWEEN @FromDate AND @ToDate)
         ORDER BY {sortColumn} {sortOrder}
         OFFSET @Offset ROWS
         FETCH NEXT @PageSize ROWS ONLY";
@@ -214,7 +244,8 @@ namespace OFMS_API.DAL.Imple
                         toDate = toDate,
                         orderStatus = orderStatus,
                         Offset = offset,
-                        PageSize = pageSize
+                        PageSize = pageSize,
+                        SkipDateFilter = filter.SkipDateFilter ? 1 : 0
                     })).ToList();
 
                 if (!orders.Any())
@@ -419,7 +450,7 @@ LEFT JOIN dimCity dimCity ON dimCity.IdCity = tblAddress.IdCity
             U.UserName AS DeliveryBoyName
         FROM tblDeliveryAssignment DA
         LEFT JOIN tblUser U
-            ON U.userId = DA.DeliveryBoyId
+            ON U.userId = DA.DeliveryBoyUserId
         WHERE DA.IdOrderMaster = @IdOrderMaster";
 
             order.DeliveryAssignment = await conn.QueryFirstOrDefaultAsync<DeliveryAssignmentResponseTO>(
@@ -594,6 +625,51 @@ LEFT JOIN dimCity dimCity ON dimCity.IdCity = tblAddress.IdCity
                 tran.Rollback();
                 throw;
             }
+        }
+
+        public async Task<ResultMessage> UpdateOrderStatus(UpdateOrderStatusRequest request)
+        {
+            var output = new ResultMessage();
+            try
+            {
+                using var conn = new SqlConnection(connq);
+                await conn.OpenAsync();
+                using var tran = conn.BeginTransaction();
+
+                string updateOrderQuery = @"
+                    UPDATE tblOrderMaster 
+                    SET IdStatus = @IdStatus, 
+                        UpdatedBy = @UpdatedBy, 
+                        UpdatedOn = GETDATE() 
+                    WHERE IdOrderMaster = @IdOrderMaster;";
+
+                int rowsAffected = await conn.ExecuteAsync(updateOrderQuery, request, transaction: tran);
+
+                if (rowsAffected > 0)
+                {
+                    string insertHistoryQuery = @"
+                        INSERT INTO tblOrderStatusHistory (IdOrderMaster, IdStatus, UpdatedBy, Remarks)
+                        VALUES (@IdOrderMaster, @IdStatus, @UpdatedBy, @Remarks);";
+
+                    await conn.ExecuteAsync(insertHistoryQuery, request, transaction: tran);
+
+                    tran.Commit();
+                    output.Message = "Order status updated successfully";
+                    output.IsSuccess = true;
+                }
+                else
+                {
+                    tran.Rollback();
+                    output.Message = "Order not found";
+                    output.IsSuccess = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                output.Message = "Error: " + ex.Message;
+                output.IsSuccess = false;
+            }
+            return output;
         }
     }
 }

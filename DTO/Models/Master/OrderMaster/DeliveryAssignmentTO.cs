@@ -102,4 +102,20 @@ namespace DTO.Models.Master.OrderMaster
         public int IdDeliveryAssignment { get; set; }
         public int UpdatedBy { get; set; }
     }
+
+    public class DeliveryDashboardCountsTO
+    {
+        public int AssignedOrders { get; set; }
+        public int PickedUpOrders { get; set; }
+        public int DeliveredToday { get; set; }
+        public int PendingOrders { get; set; }
+
+        // Expanded properties for delivery dashboard metrics
+        public int TotalAssigned { get; set; }
+        public int PendingDeliveries { get; set; }
+        public int AcceptedDeliveries { get; set; }
+        public int PickedUpDeliveries { get; set; }
+        public int OutForDelivery { get; set; }
+        public int FailedDeliveries { get; set; }
+    }
 }

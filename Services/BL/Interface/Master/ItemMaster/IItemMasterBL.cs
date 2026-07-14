@@ -1,5 +1,7 @@
-﻿using DTO.Models.CommonModel;
+using Microsoft.AspNetCore.Http;
+using DTO.Models.CommonModel;
 using DTO.Models.Master.ItemMaster;
+using DTO.Models.Master.ItemMaster.FilterModel;
 using DTO.Models.Master.ItemMaster.ResponseModel;
 using System;
 using System.Collections.Generic;
@@ -20,8 +22,8 @@ namespace Services.BL.Interface.Master.ItemMaster
         #endregion
 
         #region Category Master
-        Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(FilterModelTO filterModelTO);
-        Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(FilterModelTO filterModelTO);
+        Task<OutPutClass<TblCategoryMasterTO>> GetListOfCategoryMaster(CategoryListingFilterTO filterModelTO);
+        Task<OutPutClass<CategoryWithSubCategoryListTO>> GetCategoryWithSubCategoryList(CategoryListingFilterTO filterModelTO);
         Task<ResultMessage> AddCategoryMaster(TblCategoryMasterTO categoryMaster);
         Task<ResultMessage> UpdateCategoryMaster(TblCategoryMasterTO categoryMaster); 
         Task<TblCategoryMasterTO> GetCategoryById(int idCategory);
@@ -35,6 +37,9 @@ namespace Services.BL.Interface.Master.ItemMaster
         Task<OutPutClass<TblItemMasterTO>> GetListOfItemMaster(FilterModelTO filterModelTO);
         Task<TblItemMasterTO> GetItemMasterById(int id);
         Task<ResultMessage> UpdateItemMaster(TblItemMasterTO model);
+
+        Task<byte[]> DownloadImportTemplate();
+        Task<GlobalResponseModel<string>> ImportItems(IFormFile excelFile, int createdBy);
         #endregion
     }
 }
