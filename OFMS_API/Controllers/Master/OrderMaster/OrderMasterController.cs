@@ -116,7 +116,7 @@ namespace OFMS_API.Controllers.Master.OrderMaster
         }
         [HttpPost("GetAllOrderMasterList")]
         public async Task<IActionResult> GetOrderMasterList(OrderListFilter orderListFilter)
-        {
+            {
             var response = new GlobalResponseModel<List<OrderListResponseTO>>
             {
                 message = "Groups fetched successfully",
@@ -215,6 +215,20 @@ namespace OFMS_API.Controllers.Master.OrderMaster
                 response.status = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
+        }
+
+        [HttpGet("GenerateInvoice/{orderId}")]
+        public async Task<IActionResult> GenerateInvoice(int orderId)
+        {
+            try
+            {
+                var pdfBytes = await _iOrderBL.GenerateOrderInvoiceAsync(orderId);
+                return File(pdfBytes, "application/pdf", $"Invoice_{orderId}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Status = "Error", Message = ex.Message });
             }
         }
     }

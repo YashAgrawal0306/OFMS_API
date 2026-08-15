@@ -74,12 +74,71 @@ namespace Services.BL.Imple.Master.CookAssignment
 
         public async Task<int> UpdateKitchenStatusBL(UpdateKitchenStatusTO model)
         {
-            return await _dal.UpdateKitchenStatusDAL(model);
+            int result = await _dal.UpdateKitchenStatusDAL(model);
+
+            // When a regular (non-merged) item is marked Ready (11), check if the whole order can auto-complete
+            if (result > 0 && model.IdStatus == 11 && model.IdCookAssignment > 0)
+            {
+                try
+                {
+                    // Get the order id for this assignment
+                    var assignment = (await _dal.GetCookAssignmentListDAL(new FilterModelTO { PageNo = 0, PageSize = 0, isActive = true }))
+                        .FirstOrDefault(a => a.IdCookAssignment == model.IdCookAssignment);
+
+                    if (assignment?.IdOrderMaster != null)
+                    {
+                        await _orderDal.RecalculateOrderStatusDAL(assignment.IdOrderMaster.Value);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Non-blocking — log but don't disrupt status update flow
+                    System.Diagnostics.Debug.WriteLine($"RecalculateOrderStatus error: {ex.Message}");
+                }
+            }
+
+            return result;
         }
 
         public async Task<List<CookAssignmentResponseTO>> GetCookAssignmentListBL(FilterModelTO filterModelTO)
         {
             return await _dal.GetCookAssignmentListDAL(filterModelTO);
+        }
+
+        public async Task<List<MergeableItemResponseTO>> GetMergeableCookItemsBL()
+        {
+            return await _dal.GetMergeableCookItemsDAL();
+        }
+
+        public async Task<int> AssignMergedCookItemBL(MergedCookAssignmentRequestTO model)
+        {
+            int result = await _dal.AssignMergedCookItemDAL(model);
+            if (result > 0)
+            {
+                // Notify Cook
+                await _notificationService.SendNotificationAsync(model.CookUserId, $"You have been assigned to prepare a merged batch of {model.SourceOrders.Sum(x => x.Quantity)} items.");
+
+                // Note: Notifying individual customers is complex here because a merged item spans multiple orders.
+                // Depending on requirements, we can iterate over source orders and notify them.
+            }
+            return result;
+        }
+
+        public async Task<int> UpdateMergedKitchenStatusBL(UpdateKitchenStatusTO model)
+        {
+            // 1. Update the master assignment and cascading mapping records
+            List<int> affectedOrders = await _dal.UpdateMergedKitchenStatusDAL(model);
+
+            if (affectedOrders != null && affectedOrders.Count > 0)
+            {
+                // 2. Recalculate each affected order independently
+                foreach (var orderId in affectedOrders)
+                {
+                    await _orderDal.RecalculateOrderStatusDAL(orderId);
+                }
+            }
+            
+            return affectedOrders != null && affectedOrders.Count > 0 ? 1 : 0;
         }
     }
 }

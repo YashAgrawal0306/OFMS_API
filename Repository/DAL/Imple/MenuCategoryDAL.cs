@@ -90,7 +90,7 @@ namespace OFMS_API.DAL.Imple
                             m.UpdatedAt,
                             ROW_NUMBER() OVER (ORDER BY m.IdItemMaster ASC) AS RowNum
                         FROM tblItemMaster m
-                        INNER JOIN tblCategoryMaster c ON m.IdCategory = c.IdCategory
+                        LEFT JOIN tblCategoryMaster c ON m.IdCategory = c.IdCategory
                         LEFT JOIN tblGroupMaster g ON m.IdGroupMaster = g.IdGroupMaster
                         LEFT JOIN tblCategoryMaster sub ON m.IdSubCategory = sub.IdCategory
                         LEFT JOIN tblItemMasterImage img ON m.IdItemMaster = img.ReferenceId AND img.IsMain = 1 AND img.ImageTypeId = 4
@@ -99,13 +99,13 @@ namespace OFMS_API.DAL.Imple
                                    OR c.CategoryName LIKE @SearchText 
                                    OR m.ItemDescription LIKE @SearchText 
                                    OR m.Ingredients LIKE @SearchText))
-                          AND (@IsActive IS NULL OR m.IsActive = @IsActive)
+                          AND (@IsActive IS NULL OR COALESCE(m.IsActive, 1) = @IsActive)
                           AND (@CategoryId = 0 OR m.IdCategory = @CategoryId)
-                          AND (@GroupId = 0 OR m.IdGroupMaster = @GroupId)
+                          AND (@GroupId = 0 OR COALESCE(m.IdGroupMaster, c.IdGroupMaster, 0) = @GroupId OR @CategoryId > 0)
                           AND (@SubCategoryId = 0 OR m.IdSubCategory = @SubCategoryId)
                           AND (@ItemId = 0 OR m.IdItemMaster = @ItemId)
-                          AND (@FromDate IS NULL OR m.CreatedAt >= @FromDate)
-                          AND (@ToDate IS NULL OR m.CreatedAt <= @ToDate)
+                          AND (@FromDate IS NULL OR CONVERT(date, m.CreatedAt) >= CONVERT(date, @FromDate))
+                          AND (@ToDate IS NULL OR CONVERT(date, m.CreatedAt) <= CONVERT(date, @ToDate))
                     )
                     SELECT *
                     FROM Paginated

@@ -16,5 +16,6 @@ namespace OFMS_API.DAL.Interface
         Task<OrderListResponseTO> GetOrderMasterListByIdOrder(int IdOrderMaster);
         Task<bool> UpdateOrderMaster(OrderMasterTO order);
         Task<ResultMessage> UpdateOrderStatus(UpdateOrderStatusRequest request);
+        Task<bool> RecalculateOrderStatusDAL(int IdOrderMaster);
     }
 }

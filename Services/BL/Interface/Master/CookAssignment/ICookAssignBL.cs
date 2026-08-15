@@ -10,5 +10,10 @@ namespace Services.BL.Interface.Master.CookAssignment
         Task<int> CreateCookAssignmentBL(List<CreateCookAssignmentTO> models);
         Task<int> UpdateKitchenStatusBL(UpdateKitchenStatusTO model);
         Task<List<CookAssignmentResponseTO>> GetCookAssignmentListBL(FilterModelTO filterModelTO);
+
+        // Merged Item-wise Methods
+        Task<List<MergeableItemResponseTO>> GetMergeableCookItemsBL();
+        Task<int> AssignMergedCookItemBL(MergedCookAssignmentRequestTO model);
+        Task<int> UpdateMergedKitchenStatusBL(UpdateKitchenStatusTO model);
     }
 }

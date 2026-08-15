@@ -116,6 +116,43 @@ namespace OFMS_API.DAL.Imple
                 throw;
             }
         }
+
+        public async Task<bool> RecalculateOrderStatusDAL(int IdOrderMaster)
+        {
+            using var conn = new SqlConnection(connq);
+            
+            string sql = @"
+                SELECT 
+                    od.IdOrderDetails, 
+                    COALESCE(ca.IdStatus, cam.IdStatus, 0) AS CookStatus
+                FROM tblOrderDetails od
+                LEFT JOIN tblCookAssignment ca ON od.IdOrderDetails = ca.IdOrderDetails AND ca.IsActive = 1 AND ca.IsMerged = 0
+                LEFT JOIN tblCookAssignmentMapping cam ON od.IdOrderDetails = cam.IdOrderDetails
+                WHERE od.IdOrderMaster = @IdOrderMaster
+            ";
+            
+            var items = (await conn.QueryAsync(sql, new { IdOrderMaster })).ToList();
+            
+            if (items.Count == 0) return false;
+            
+            // Cook status for 'Ready' is 11
+            bool allReady = items.All(x => (int)x.CookStatus == 11);
+            
+            if (allReady)
+            {
+                string statusSql = "SELECT IdStatus FROM tblOrderMaster WHERE IdOrderMaster = @IdOrderMaster";
+                int currentStatus = await conn.ExecuteScalarAsync<int>(statusSql, new { IdOrderMaster });
+                if (currentStatus < 4) // Only advance if not already Ready for Delivery(4), Assigned to Delivery(5), Completed(6) or Cancelled(7)
+                {
+                    // Status 4 = Ready / Cooked: all cook items are ready, awaiting delivery boy assignment
+                    string updateSql = "UPDATE tblOrderMaster SET IdStatus = 4, UpdatedOn = GETDATE() WHERE IdOrderMaster = @IdOrderMaster";
+                    await conn.ExecuteAsync(updateSql, new { IdOrderMaster });
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public async Task<int> AddPaymentData(TblPaymentTO tblPaymentTO, SqlConnection conn, SqlTransaction tran)
         {
             const string sql = @"
@@ -197,6 +234,11 @@ namespace OFMS_API.DAL.Imple
                 }
                 var output = new OutPutClass<OrderListResponseTO>();
 
+                // Normalize empty strings to null so SQL NULL-checks work correctly
+                string? orderNo       = string.IsNullOrWhiteSpace(filter.OrderNo)       ? null : filter.OrderNo;
+                string? customerName  = string.IsNullOrWhiteSpace(filter.CustomerName)  ? null : filter.CustomerName;
+                int?    customerIdInt = (!string.IsNullOrWhiteSpace(filter.CustomerId) && int.TryParse(filter.CustomerId, out int cid)) ? cid : (int?)null;
+
                 string countQuery = @"
         SELECT COUNT(1)
         FROM tblOrderMaster OM
@@ -204,15 +246,17 @@ namespace OFMS_API.DAL.Imple
         WHERE
             (@OrderNo IS NULL OR OM.OrderNo LIKE '%' + @OrderNo + '%')
             AND (@CustomerName IS NULL OR U.UserName LIKE '%' + @CustomerName + '%')
+            AND (@CustomerId IS NULL OR OM.CustomerId = @CustomerId)
             AND (@IsActive IS NULL OR OM.IsActive = @IsActive);";
 
                 int totalRecords = await conn.ExecuteScalarAsync<int>(
                     countQuery,
                     new
                     {
-                        filter.OrderNo,
-                        filter.CustomerName,
-                        IsActive = filter.isActive
+                        OrderNo      = orderNo,
+                        CustomerName = customerName,
+                        CustomerId   = customerIdInt,
+                        IsActive     = filter.isActive
                     });
 
                 string orderQuery = $@"
@@ -227,6 +271,7 @@ namespace OFMS_API.DAL.Imple
             (@OrderNo IS NULL OR OM.OrderNo LIKE '%' + @OrderNo + '%')
             AND (OM.IdStatus in @orderStatus)
             AND (@CustomerName IS NULL OR U.UserName LIKE '%' + @CustomerName + '%')
+            AND (@CustomerId IS NULL OR OM.CustomerId = @CustomerId)
             AND (@IsActive IS NULL OR OM.IsActive = @IsActive) 
             AND (@SkipDateFilter = 1 OR OM.CreatedOn BETWEEN @FromDate AND @ToDate)
         ORDER BY {sortColumn} {sortOrder}
@@ -237,14 +282,15 @@ namespace OFMS_API.DAL.Imple
                     orderQuery,
                     new
                     {
-                        filter.OrderNo,
-                        filter.CustomerName,
-                        IsActive = filter.isActive,
-                        fromdate = fromdate,
-                        toDate = toDate,
-                        orderStatus = orderStatus,
-                        Offset = offset,
-                        PageSize = pageSize,
+                        OrderNo      = orderNo,
+                        CustomerName = customerName,
+                        CustomerId   = customerIdInt,
+                        IsActive     = filter.isActive,
+                        fromdate     = fromdate,
+                        toDate       = toDate,
+                        orderStatus  = orderStatus,
+                        Offset       = offset,
+                        PageSize     = pageSize,
                         SkipDateFilter = filter.SkipDateFilter ? 1 : 0
                     })).ToList();
 
@@ -315,14 +361,18 @@ namespace OFMS_API.DAL.Imple
 
         FROM tblOrderDetails OD
 
-        LEFT JOIN tblItemMaster IM
-            ON IM.IdItemMaster = OD.IdItemMaster
-
-        LEFT JOIN tblCookAssignment CA
-            ON CA.IdOrderDetails = OD.IdOrderDetails
-
-        LEFT JOIN tblUser CU
-            ON CU.userid = CA.CookUserId
+        LEFT JOIN tblItemMaster IM ON IM.IdItemMaster = OD.IdItemMaster
+        LEFT JOIN (
+             SELECT IdOrderDetails, IdCookAssignment, CookUserId, IdStatus, AssignedOn
+             FROM tblCookAssignment
+             WHERE IsMerged = 0 AND IsActive = 1
+             UNION ALL
+             SELECT m.IdOrderDetails, c.IdCookAssignment, c.CookUserId, m.IdStatus, c.AssignedOn
+             FROM tblCookAssignmentMapping m
+             INNER JOIN tblCookAssignment c ON m.IdCookAssignment = c.IdCookAssignment
+             WHERE c.IsActive = 1
+        ) CA ON CA.IdOrderDetails = OD.IdOrderDetails
+        LEFT JOIN tblUser CU ON CU.userid = CA.CookUserId
 
         WHERE OD.IdOrderMaster IN @OrderIds";
 
@@ -479,8 +529,16 @@ LEFT JOIN dimCity dimCity ON dimCity.IdCity = tblAddress.IdCity
         LEFT JOIN tblItemMaster IM
             ON IM.IdItemMaster = OD.IdItemMaster
 
-        LEFT JOIN tblCookAssignment CA
-            ON CA.IdOrderDetails = OD.IdOrderDetails
+        LEFT JOIN (
+             SELECT IdOrderDetails, IdCookAssignment, CookUserId, IdStatus, AssignedOn
+             FROM tblCookAssignment
+             WHERE IsMerged = 0 AND IsActive = 1
+             UNION ALL
+             SELECT m.IdOrderDetails, c.IdCookAssignment, c.CookUserId, m.IdStatus, c.AssignedOn
+             FROM tblCookAssignmentMapping m
+             INNER JOIN tblCookAssignment c ON m.IdCookAssignment = c.IdCookAssignment
+             WHERE c.IsActive = 1
+        ) CA ON CA.IdOrderDetails = OD.IdOrderDetails
 
         LEFT JOIN tblUser CU
             ON CU.userId = CA.CookUserId

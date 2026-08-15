@@ -51,17 +51,21 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
             var sb = new StringBuilder(@"
                 SELECT 
                     g.IdCookAssignment,
-                    g.IdOrderMaster,
-                    o.OrderNo AS OrderNumber,
-                    u.UserName AS CustomerName,
+                    ISNULL(g.IdOrderMaster, -g.IdCookAssignment) AS IdOrderMaster,
+                    ISNULL(o.OrderNo, 'MERGED-BATCH') AS OrderNumber,
+                    ISNULL(u.UserName, 'Multiple Customers') AS CustomerName,
                     g.AssignedOn,
                     g.AcceptedOn,
                     g.EstimatedPreparationTime,
                     g.IdStatus,
                     s.StatusName,
                     s.ColorCode AS StatusColorCode,
-                    (SELECT SUM(Quantity) FROM tblOrderDetails WHERE IdOrderMaster = g.IdOrderMaster) AS TotalItems,
-                    g.CompletedOn
+                    COALESCE(
+                        g.TotalQuantity,
+                        (SELECT SUM(Quantity) FROM tblOrderDetails WHERE IdOrderMaster = g.IdOrderMaster)
+                    ) AS TotalItems,
+                    g.CompletedOn,
+                    g.IsMerged
                 FROM (
                     SELECT 
                         MIN(IdCookAssignment) AS IdCookAssignment,
@@ -70,12 +74,14 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
                         MIN(AssignedOn) AS AssignedOn,
                         MIN(AcceptedOn) AS AcceptedOn,
                         MAX(EstimatedPreparationTime) AS EstimatedPreparationTime,
-                        MIN(ReadyOn) AS CompletedOn
+                        MIN(ReadyOn) AS CompletedOn,
+                        MIN(CAST(IsMerged AS INT)) AS IsMerged,
+                        MAX(TotalQuantity) AS TotalQuantity
                     FROM tblCookAssignment
                     WHERE CookUserId = @CookUserId AND IsActive = 1
-                    GROUP BY IdOrderMaster
+                    GROUP BY ISNULL(IdOrderMaster, -IdCookAssignment), IdOrderMaster
                 ) g
-                INNER JOIN tblOrderMaster o ON g.IdOrderMaster = o.IdOrderMaster
+                LEFT JOIN tblOrderMaster o ON g.IdOrderMaster = o.IdOrderMaster
                 LEFT JOIN tbluser u ON o.CustomerId = u.UserId
                 LEFT JOIN dimStatus s ON g.IdStatus = s.IdStatus
                 WHERE 1 = 1
@@ -89,12 +95,12 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
             else
             {
                 // Active assignments (Assigned 8, Accepted 9, Preparing 10)
-                sb.Append(" AND g.IdStatus IN (8, 9, 10) ");
+                sb.Append(" AND g.IdStatus IN (8, 9, 10, 101) "); // include any merged assigned states
             }
 
             if (!string.IsNullOrEmpty(filter.SearchText))
             {
-                sb.Append(" AND (o.OrderNo LIKE @Search OR u.UserName LIKE @Search) ");
+                sb.Append(" AND (ISNULL(o.OrderNo, 'MERGED-BATCH') LIKE @Search OR ISNULL(u.UserName, 'Multiple') LIKE @Search) ");
             }
 
             string sortColumn = string.IsNullOrEmpty(filter.SortColumn) ? "g.AssignedOn" : filter.SortColumn;
@@ -129,6 +135,57 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
             try { 
             using var conn = new SqlConnection(_connectionString);
             
+            if (orderId <= 0)
+            {
+                int idCookAssignment = -orderId;
+                string sqlMerged = @"
+                    SELECT 
+                        c.IdCookAssignment,
+                        0 AS IdOrderMaster,
+                        'MERGED-BATCH' AS OrderNumber,
+                        GETDATE() AS OrderDate,
+                        'Multiple Customers' AS CustomerName,
+                        'N/A' AS ContactNumber,
+                        'N/A' AS DeliveryAddress,
+                        c.AssignedOn,
+                        c.AcceptedOn,
+                        c.StartCookingOn,
+                        c.ReadyOn,
+                        c.EstimatedPreparationTime,
+                        c.ActualPreparationTime,
+                        c.Remarks AS CookRemark,
+                        c.IdStatus,
+                        s.StatusName,
+                        s.ColorCode AS StatusColorCode,
+                        1 AS OrderStatusId
+                    FROM tblCookAssignment c
+                    LEFT JOIN dimStatus s ON c.IdStatus = s.IdStatus
+                    WHERE c.IdCookAssignment = @IdCookAssignment AND c.CookUserId = @CookUserId AND c.IsActive = 1;
+                ";
+                var mergedDetails = await conn.QueryFirstOrDefaultAsync<CookOrderDetailResponseTO>(sqlMerged, new { IdCookAssignment = idCookAssignment, CookUserId = cookUserId });
+
+                if (mergedDetails != null)
+                {
+                    string itemsSql = @"
+                        SELECT 
+                            0 AS IdOrderDetails,
+                            i.ItemName,
+                            c.TotalQuantity AS Qty,
+                            NULL AS ItemRemark,
+                            c.IdCookAssignment,
+                            c.IdStatus,
+                            s.StatusName
+                        FROM tblCookAssignment c
+                        INNER JOIN tblItemMaster i ON c.IdItemMaster = i.IdItemMaster
+                        LEFT JOIN dimStatus s ON c.IdStatus = s.IdStatus
+                        WHERE c.IdCookAssignment = @IdCookAssignment AND c.IsActive = 1;
+                    ";
+                    var items = await conn.QueryAsync<CookOrderItemTO>(itemsSql, new { IdCookAssignment = idCookAssignment });
+                    mergedDetails.Items = items.ToList();
+                }
+                return mergedDetails;
+            }
+
             string sql = @"
                 SELECT 
                     c.IdCookAssignment,
@@ -241,24 +298,46 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
         public async Task<bool> UpdateEstimatedTime(int cookUserId, UpdateEstimatedTimeRequestTO request)
         {
             using var conn = new SqlConnection(_connectionString);
-            string sql = @"
-                UPDATE tblCookAssignment 
-                SET EstimatedPreparationTime = @EstimatedMinutes,
-                    UpdatedOn = GETDATE(),
-                    UpdatedBy = @CookUserId
-                WHERE IdOrderMaster = @IdOrderMaster AND CookUserId = @CookUserId AND IdStatus IN (8,9,10) AND IsActive = 1
-            ";
+            string sql;
+            object parameters;
+
+            if (request.IdOrderMaster <= 0)
+            {
+                sql = @"
+                    UPDATE tblCookAssignment 
+                    SET EstimatedPreparationTime = @EstimatedMinutes,
+                        UpdatedOn = GETDATE(),
+                        UpdatedBy = @CookUserId
+                    WHERE IdCookAssignment = @IdCookAssignment AND CookUserId = @CookUserId AND IdStatus IN (8,9,10) AND IsActive = 1
+                ";
+                parameters = new {
+                    request.EstimatedMinutes,
+                    IdCookAssignment = -request.IdOrderMaster,
+                    CookUserId = cookUserId
+                };
+            }
+            else
+            {
+                sql = @"
+                    UPDATE tblCookAssignment 
+                    SET EstimatedPreparationTime = @EstimatedMinutes,
+                        UpdatedOn = GETDATE(),
+                        UpdatedBy = @CookUserId
+                    WHERE IdOrderMaster = @IdOrderMaster AND CookUserId = @CookUserId AND IdStatus IN (8,9,10) AND IsActive = 1
+                ";
+                parameters = new {
+                    request.EstimatedMinutes,
+                    request.IdOrderMaster,
+                    CookUserId = cookUserId
+                };
+            }
             
-            int rowsAffected = await conn.ExecuteAsync(sql, new {
-                request.EstimatedMinutes,
-                request.IdOrderMaster,
-                CookUserId = cookUserId
-            });
+            int rowsAffected = await conn.ExecuteAsync(sql, parameters);
 
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateCookingStatus(int cookUserId, UpdateCookingStatusRequestTO request)
+        public async Task<int> UpdateCookingStatus(int cookUserId, UpdateCookingStatusRequestTO request)
         {
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -315,51 +394,125 @@ namespace OFMS_API.Repository.DAL.Imple.CookModule
                 if (affected == 0)
                 {
                     tx.Rollback();
-                    return false;
+                    return 0;
                 }
 
-                // If cook is Ready (11), update OrderMaster to Ready (4) ONLY when all items are ready
-                if (request.NewStatusId == 11)
+                int orderId = request.IdOrderMaster;
+                if (orderId == 0 && request.IdCookAssignments != null && request.IdCookAssignments.Any())
                 {
-                    int orderId = request.IdOrderMaster;
-                    if (orderId == 0 && request.IdCookAssignments != null && request.IdCookAssignments.Any())
-                    {
-                        orderId = await conn.QueryFirstOrDefaultAsync<int>(
-                            "SELECT TOP 1 IdOrderMaster FROM tblCookAssignment WHERE IdCookAssignment = @Id",
-                            new { Id = request.IdCookAssignments.First() }, tx);
-                    }
-
-                    string totalSql = "SELECT ISNULL(SUM(Quantity), 0) FROM tblOrderDetails WHERE IdOrderMaster = @OrderId";
-                    string readySql = @"
-                        SELECT ISNULL(SUM(d.Quantity), 0) 
-                        FROM tblCookAssignment c
-                        INNER JOIN tblOrderDetails d ON c.IdOrderDetails = d.IdOrderDetails
-                        WHERE c.IdOrderMaster = @OrderId AND c.IdStatus = 11 AND c.IsActive = 1";
-
-                    int totalItems = await conn.ExecuteScalarAsync<int>(totalSql, new { OrderId = orderId }, tx);
-                    int readyQuantity = await conn.ExecuteScalarAsync<int>(readySql, new { OrderId = orderId }, tx);
-
-                    if (totalItems > 0 && totalItems == readyQuantity)
-                    {
-                        string orderSql = @"
-                            UPDATE tblOrderMaster
-                            SET IdStatus = 4, -- Order Ready
-                                UpdatedOn = GETDATE(),
-                                UpdatedBy = @CookUserId
-                            WHERE IdOrderMaster = @OrderId
-                        ";
-                        await conn.ExecuteAsync(orderSql, new { OrderId = orderId, CookUserId = cookUserId }, tx);
-                    }
+                    orderId = await conn.QueryFirstOrDefaultAsync<int>(
+                        "SELECT TOP 1 IdOrderMaster FROM tblCookAssignment WHERE IdCookAssignment = @Id",
+                        new { Id = request.IdCookAssignments.First() }, tx);
                 }
 
                 tx.Commit();
-                return true;
+                return orderId;
             }
             catch
             {
                 tx.Rollback();
                 throw;
             }
+        }
+
+        public async Task<List<CookReportItemTO>> GetCookHistoryReportData(CookReportFilterTO filter)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            
+            var sql = @"
+                SELECT 
+                    c.IdCookAssignment,
+                    c.IdOrderMaster,
+                    o.OrderNo,
+                    uCust.UserName AS CustomerName,
+                    c.CookUserId,
+                    uCook.UserName AS CookName,
+                    ISNULL(im.ItemName, N'Merged / Bulk Order') AS ItemName,
+                    ISNULL(c.TotalQuantity, od.Quantity) AS Quantity,
+                    c.AssignedOn,
+                    c.AcceptedOn,
+                    c.StartCookingOn,
+                    c.ReadyOn,
+                    c.EstimatedPreparationTime,
+                    c.ActualPreparationTime,
+                    c.IdStatus,
+                    s.StatusName,
+                    c.IsMerged,
+                    c.Remarks
+                FROM tblCookAssignment c
+                LEFT JOIN tblOrderMaster o ON c.IdOrderMaster = o.IdOrderMaster
+                LEFT JOIN tblOrderDetails od ON c.IdOrderDetails = od.IdOrderDetails
+                LEFT JOIN tblItemMaster im ON od.IdItemMaster = im.IdItemMaster OR c.IdItemMaster = im.IdItemMaster
+                LEFT JOIN tblUser uCust ON o.CustomerId = uCust.UserId
+                LEFT JOIN tblUser uCook ON c.CookUserId = uCook.UserId
+                LEFT JOIN dimStatus s ON c.IdStatus = s.IdStatus
+                WHERE c.IsActive = 1
+            ";
+
+            var builder = new System.Text.StringBuilder(sql);
+            var dynamicParams = new DynamicParameters();
+
+            if (filter.CookUserId.HasValue && filter.CookUserId.Value > 0)
+            {
+                builder.AppendLine("  AND c.CookUserId = @CookUserId");
+                dynamicParams.Add("CookUserId", filter.CookUserId.Value);
+            }
+
+            if (filter.IdStatus.HasValue && filter.IdStatus.Value > 0)
+            {
+                if (filter.IdStatus.Value == 11)
+                {
+                    builder.AppendLine("  AND c.IdStatus >= 11");
+                }
+                else
+                {
+                    builder.AppendLine("  AND c.IdStatus = @IdStatus");
+                    dynamicParams.Add("IdStatus", filter.IdStatus.Value);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.SearchText))
+            {
+                builder.AppendLine("  AND (o.OrderNo LIKE @SearchText OR uCust.UserName LIKE @SearchText OR im.ItemName LIKE @SearchText OR uCook.UserName LIKE @SearchText)");
+                dynamicParams.Add("SearchText", $"%{filter.SearchText.Trim()}%");
+            }
+
+            string targetDateCol = "ISNULL(c.ReadyOn, c.AssignedOn)";
+
+            if (filter.FilterType == "Day" && filter.FromDate.HasValue)
+            {
+                builder.AppendLine($"  AND CAST({targetDateCol} AS DATE) = CAST(@FromDate AS DATE)");
+                dynamicParams.Add("FromDate", filter.FromDate.Value);
+            }
+            else if (filter.FilterType == "Month" && filter.SelectedMonth.HasValue && filter.SelectedYear.HasValue)
+            {
+                builder.AppendLine($"  AND MONTH({targetDateCol}) = @SelectedMonth AND YEAR({targetDateCol}) = @SelectedYear");
+                dynamicParams.Add("SelectedMonth", filter.SelectedMonth.Value);
+                dynamicParams.Add("SelectedYear", filter.SelectedYear.Value);
+            }
+            else if (filter.FilterType == "Year" && filter.SelectedYear.HasValue)
+            {
+                builder.AppendLine($"  AND YEAR({targetDateCol}) = @SelectedYear");
+                dynamicParams.Add("SelectedYear", filter.SelectedYear.Value);
+            }
+            else if (filter.FilterType == "Range")
+            {
+                if (filter.FromDate.HasValue)
+                {
+                    builder.AppendLine($"  AND {targetDateCol} >= @FromDate");
+                    dynamicParams.Add("FromDate", filter.FromDate.Value);
+                }
+                if (filter.ToDate.HasValue)
+                {
+                    builder.AppendLine($"  AND {targetDateCol} <= @ToDate");
+                    dynamicParams.Add("ToDate", filter.ToDate.Value.Date.AddDays(1).AddTicks(-1));
+                }
+            }
+
+            builder.AppendLine(" ORDER BY c.IdCookAssignment DESC");
+
+            var result = await conn.QueryAsync<CookReportItemTO>(builder.ToString(), dynamicParams);
+            return result.AsList();
         }
     }
 }

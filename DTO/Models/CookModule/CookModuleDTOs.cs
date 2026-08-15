@@ -27,6 +27,7 @@ namespace DTO.Models.CookModule
         public string StatusColorCode { get; set; }
         public int TotalItems { get; set; }
         public DateTime? CompletedOn { get; set; } // Map to ReadyOn or actual completion
+        public bool IsMerged { get; set; }
     }
 
     public class CookOrderDetailResponseTO
@@ -91,5 +92,39 @@ namespace DTO.Models.CookModule
     {
         public int IdOrderMaster { get; set; }
         public int EstimatedMinutes { get; set; }
+    }
+
+    public class CookReportFilterTO
+    {
+        public int? CookUserId { get; set; }
+        public string? FilterType { get; set; } // "All", "Day", "Month", "Year", "Range"
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public int? SelectedMonth { get; set; } // 1-12
+        public int? SelectedYear { get; set; }  // e.g. 2026
+        public string? SearchText { get; set; }
+        public int? IdStatus { get; set; }
+    }
+
+    public class CookReportItemTO
+    {
+        public int IdCookAssignment { get; set; }
+        public int IdOrderMaster { get; set; }
+        public string OrderNo { get; set; }
+        public string CustomerName { get; set; }
+        public int CookUserId { get; set; }
+        public string CookName { get; set; }
+        public string ItemName { get; set; }
+        public int Quantity { get; set; }
+        public DateTime AssignedOn { get; set; }
+        public DateTime? AcceptedOn { get; set; }
+        public DateTime? StartCookingOn { get; set; }
+        public DateTime? ReadyOn { get; set; }
+        public int? EstimatedPreparationTime { get; set; }
+        public int? ActualPreparationTime { get; set; }
+        public int IdStatus { get; set; }
+        public string StatusName { get; set; }
+        public bool IsMerged { get; set; }
+        public string Remarks { get; set; }
     }
 }

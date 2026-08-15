@@ -7,6 +7,7 @@ using OFMS_API.Services.BL.Interface.CookModule;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Services.BL.Interface.Master.CookAssignment;
 
 namespace OFMS_API.Controllers.CookModule
 {
@@ -16,10 +17,12 @@ namespace OFMS_API.Controllers.CookModule
     public class CookModuleController : ControllerBase
     {
         private readonly ICookModuleBL _cookModuleBL;
+        private readonly ICookAssignBL _cookAssignBL;
 
-        public CookModuleController(ICookModuleBL cookModuleBL)
+        public CookModuleController(ICookModuleBL cookModuleBL, ICookAssignBL cookAssignBL)
         {
             _cookModuleBL = cookModuleBL;
+            _cookAssignBL = cookAssignBL;
         }
 
         private int GetCookUserId()
@@ -95,6 +98,29 @@ namespace OFMS_API.Controllers.CookModule
             }
         }
 
+        [HttpPost("ExportCookHistoryExcel")]
+        public async Task<IActionResult> ExportCookHistoryExcel([FromBody] CookReportFilterTO filter)
+        {
+            try
+            {
+                var roleClaim = User.FindFirst("RoleId")?.Value ?? User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
+
+                // Cook role (roleId 3) only exports their own history
+                if (roleClaim == "3")
+                {
+                    filter.CookUserId = GetCookUserId();
+                }
+
+                var fileBytes = await _cookModuleBL.GenerateCookHistoryExcel(filter);
+                string fileName = $"Cook_History_Report_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("OrderDetails/{orderId}")]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
@@ -150,7 +176,27 @@ namespace OFMS_API.Controllers.CookModule
             try
             {
                 int cookUserId = GetCookUserId();
-                bool success = await _cookModuleBL.UpdateCookingStatus(cookUserId, request);
+                bool success = false;
+
+                // Handle Merged Task
+                if (request.IdOrderMaster <= 0 && request.IdCookAssignments != null && request.IdCookAssignments.Count > 0)
+                {
+                    var mergedPayload = new DTO.Models.Master.OrderMaster.UpdateKitchenStatusTO
+                    {
+                        IdCookAssignment = request.IdCookAssignments[0],
+                        IdStatus = request.NewStatusId,
+                        Remarks = request.Remark,
+                        UpdatedBy = cookUserId
+                    };
+                    int affectedOrders = await _cookAssignBL.UpdateMergedKitchenStatusBL(mergedPayload);
+                    success = affectedOrders > 0;
+                }
+                else
+                {
+                    // Handle Standard Task
+                    int orderId = await _cookModuleBL.UpdateCookingStatus(cookUserId, request);
+                    success = orderId > 0;
+                }
                 
                 if (!success)
                     return BadRequest(new { message = "Failed to update status. Validation failed." });

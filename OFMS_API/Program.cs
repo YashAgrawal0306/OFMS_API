@@ -38,6 +38,10 @@ using Repository.DAL.Imple.Notification;
 using Services.BL.Interface.Notification;
 using Services.BL.Imple.Notification;
 using OFMS_API.Services;
+using Repository.DAL.Interface.Chat;
+using Repository.DAL.Imple.Chat;
+using Services.BL.Interface.Chat;
+using Services.BL.Imple.Chat;
 using OFMS_API.Helper.Common;
 using Microsoft.AspNetCore.SignalR;
 var builder = WebApplication.CreateBuilder(args);
@@ -61,6 +65,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.CommonRegister();
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddSignalR();
+builder.Services.AddHostedService<ChatCleanupHostedService>();
 
 builder.Services.AddScoped<IuserDAL, userDAL>();
 builder.Services.AddScoped<IMenuCategoryDAL, menuCategoryDAL>();
@@ -83,6 +88,11 @@ builder.Services.AddScoped<ICookAssignBL, CookAssignBL>();
 builder.Services.AddScoped<IDeliveryAssignmentDAL, DeliveryAssignmentDAL>();
 builder.Services.AddScoped<IDeliveryAssignmentBL, DeliveryAssignmentBL>();
 
+// Theme Management
+builder.Services.AddScoped<Repository.DAL.Interface.Master.ThemeMaster.IThemeMasterDAL, Repository.DAL.Imple.Master.ThemeMaster.ThemeMasterDAL>();
+builder.Services.AddScoped<Services.BL.Interface.Master.ThemeMaster.IThemeMasterBL, Services.BL.Imple.Master.ThemeMaster.ThemeMasterBL>();
+
+
 // Customer Home Page Dashboard stats
 builder.Services.AddScoped<Repository.DAL.Interface.Master.CustomerHome.ICustomerHomeDAL, Repository.DAL.Imple.Master.CustomerHome.CustomerHomeDAL>();
 builder.Services.AddScoped<OFMS_API.BL.Interface.Master.CustomerHome.ICustomerHomeBL, OFMS_API.BL.Imple.Master.CustomerHome.CustomerHomeBL>();
@@ -104,6 +114,10 @@ builder.Services.AddScoped<INotificationMasterBL, NotificationMasterBL>();
 // Cart Module
 builder.Services.AddScoped<OFMS_API.DAL.Interface.ICartRepository, OFMS_API.DAL.Imple.CartRepository>();
 builder.Services.AddScoped<OFMS_API.BL.Interface.ICartBL, OFMS_API.BL.Imple.CartBL>();
+
+// Chat Module
+builder.Services.AddScoped<IChatDAL, ChatDAL>();
+builder.Services.AddScoped<IChatBL, ChatBL>();
 
 
 // Updated CORS policy to include your Angular app's origin
@@ -143,7 +157,8 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+            if (!string.IsNullOrEmpty(accessToken) &&
+                (path.StartsWithSegments("/notificationHub") || path.StartsWithSegments("/chatHub")))
             {
                 context.Token = accessToken;
                 return Task.CompletedTask;
@@ -219,5 +234,6 @@ app.UseMiddleware<ApiLoggingMiddleware>();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
 
 app.Run();

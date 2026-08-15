@@ -39,6 +39,12 @@ namespace Repository.DAL.Imple.Master.DeliveryAssignment
                 (IdOrderMaster, DeliveryBoyUserId, IdStatus, AssignedOn, EstimatedDeliveryTime, DeliveryRemarks, IsActive, CreatedOn, CreatedBy) 
                 VALUES 
                 (@IdOrderMaster, @DeliveryBoyUserId, @IdStatus, @AssignedOn, @EstimatedDeliveryTime, @DeliveryRemarks, 1, GETDATE(), @CreatedBy);
+
+                UPDATE tblOrderMaster 
+                SET IdStatus = 5, 
+                    UpdatedBy = @CreatedBy, 
+                    UpdatedOn = GETDATE() 
+                WHERE IdOrderMaster = @IdOrderMaster;
                 
                 SELECT CAST(SCOPE_IDENTITY() as int);";
 

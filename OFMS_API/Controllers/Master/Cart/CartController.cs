@@ -75,7 +75,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
@@ -110,7 +110,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
@@ -161,7 +161,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
@@ -196,7 +196,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
@@ -231,7 +231,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }
@@ -268,7 +268,7 @@ namespace OFMS_API.Controllers.Master.Cart
                 response.message   = ex.Message;
                 response.status    = "Error";
                 response.statusCode = StatusCodes.Status500InternalServerError;
-                response.exception = ex;
+                // response.exception = ex;
                 return StatusCode(StatusCodes.Status500InternalServerError, response);
             }
         }

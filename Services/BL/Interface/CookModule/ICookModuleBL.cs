@@ -10,7 +10,8 @@ namespace OFMS_API.Services.BL.Interface.CookModule
         Task<OutPutClass<CookOrderListResponseTO>> GetMyAssignedOrders(int cookUserId, FilterModelTO filter, bool completedHistory);
         Task<CookOrderDetailResponseTO> GetOrderDetailsForCook(int cookUserId, int orderId);
         Task<bool> AcceptOrder(int cookUserId, AcceptOrderRequestTO request);
-        Task<bool> UpdateCookingStatus(int cookUserId, UpdateCookingStatusRequestTO request);
+        Task<int> UpdateCookingStatus(int cookUserId, UpdateCookingStatusRequestTO request);
         Task<bool> UpdateEstimatedTime(int cookUserId, UpdateEstimatedTimeRequestTO request);
+        Task<byte[]> GenerateCookHistoryExcel(CookReportFilterTO filter);
     }
 }
